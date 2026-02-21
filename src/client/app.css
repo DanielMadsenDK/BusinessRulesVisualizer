@@ -243,6 +243,51 @@ body {
     pointer-events: none;
 }
 
+/* Header right cluster: count badge + collapse toggle */
+
+.group-node__header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.group-node__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+    opacity: 0.55;
+    transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+
+.group-node__toggle:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* Chevron icon — points down when expanded, right when collapsed */
+.group-node__toggle-icon {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-bottom: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: rotate(45deg) translate(-1px, -1px);
+    transition: transform 0.2s ease;
+}
+
+.group-node__toggle-icon--collapsed {
+    transform: rotate(-45deg) translate(1px, 1px);
+}
+
 /* Phase colour themes */
 
 .group-node--before {
@@ -473,6 +518,14 @@ body {
 /* Hide React Flow selection outline on section labels */
 .react-flow__node-sectionLabelNode .react-flow__node-toolbar,
 .react-flow__node-sectionLabelNode.selected > * {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Suppress selection ring on group (phase) nodes — they use a custom toggle
+   button for interaction so we don't want the default selection highlight. */
+.react-flow__node-groupNode.selected > .group-node,
+.react-flow__node-groupNode.selected {
     outline: none !important;
     box-shadow: none !important;
 }

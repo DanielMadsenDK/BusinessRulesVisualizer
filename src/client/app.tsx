@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import ReactFlow, {
     Background,
     Controls,
@@ -35,13 +35,14 @@ const GROUP_HEADER      = 70
 const GROUP_PADDING_X   = 20
 const GROUP_WIDTH       = NODE_WIDTH + GROUP_PADDING_X * 2
 const SECTION_LABEL_H   = 36   // height of each section label node
-const TOP_ROW_Y         = SECTION_LABEL_H + 20  // 56 — first row of groups
+const TOP_ROW_Y         = SECTION_LABEL_H + 44  // 80 — first row of groups (extra breathing room)
 const ROW_GAP           = 60   // vertical gap between the two pipeline rows
-const SECTION_LABEL_W   = 1100 // wide enough to span the full top row
+const SECTION_LABEL_W   = 1250 // spans from COLUMN_X.before(50) to end of async(1040+260)
 
 const COLUMN_X = { before: 50, db: 390, after: 630, async: 1040 }
 const DB_WIDTH  = 160
 const DB_HEIGHT = 160
+const COLLAPSED_H = 52   // Group height when folded to header only
 
 // ── Custom node types ──────────────────────────────────────────────────────────
 
@@ -71,10 +72,15 @@ const nodeTypes: NodeTypes = {
  * - Display rules appear in a separate second row with no DB connection.
  * - Group containers (parentId parents) are pushed to the front of the array
  *   so React Flow processes them before their children.
+ * - When a group is in collapsedGroups its children are omitted entirely and
+ *   the group shrinks to COLLAPSED_H so inter-phase edges connect via the
+ *   group's own handles.
  */
 function buildFlowElements(
     tableName: string,
-    rules: BusinessRule[]
+    rules: BusinessRule[],
+    collapsedGroups: ReadonlySet<string>,
+    onToggleGroup: (groupId: string) => void
 ): { nodes: Node[]; edges: Edge[] } {
     const before  = rules.filter(r => r.when === 'before').sort((a, b) => a.order - b.order)
     const after   = rules.filter(r => r.when === 'after').sort((a, b) => a.order - b.order)
@@ -84,15 +90,21 @@ function buildFlowElements(
     const groupHeight = (count: number) =>
         Math.max(140, GROUP_HEADER + count * (NODE_HEIGHT + NODE_GAP) + 20)
 
+    const effectiveH = (groupId: string, count: number) =>
+        collapsedGroups.has(groupId) ? COLLAPSED_H : groupHeight(count)
+
     // Top row height = tallest group among before / after / async
     const topGroupH = Math.max(
-        groupHeight(before.length),
-        groupHeight(after.length),
-        async_.length > 0 ? groupHeight(async_.length) : 0
+        effectiveH('group-before', before.length),
+        effectiveH('group-after',  after.length),
+        async_.length > 0 ? effectiveH('group-async', async_.length) : 0
     )
 
     // Y positions
-    const dbY              = TOP_ROW_Y + topGroupH / 2 - DB_HEIGHT / 2
+    // Clamp dbY so the DB node never rises above the group row, even when all
+    // groups are collapsed (topGroupH < DB_HEIGHT would otherwise produce a
+    // negative offset that overlaps the section label).
+    const dbY              = Math.max(TOP_ROW_Y, TOP_ROW_Y + topGroupH / 2 - DB_HEIGHT / 2)
     const displaySectionY  = TOP_ROW_Y + topGroupH + ROW_GAP
     const displayRowY      = displaySectionY + SECTION_LABEL_H + 20
 
@@ -123,15 +135,29 @@ function buildFlowElements(
         colX: number,
         rowY: number
     ) {
+        const isCollapsed = collapsedGroups.has(groupId)
+        const h = isCollapsed ? COLLAPSED_H : groupHeight(phaseRules.length)
+
         groupNodes.push({
             id:       groupId,
             type:     'groupNode',
             position: { x: colX, y: rowY },
-            style:    { width: GROUP_WIDTH, height: groupHeight(phaseRules.length) },
-            data:     { label, phase, ruleCount: phaseRules.length } satisfies GroupNodeData,
-            selectable: false,
+            style:    { width: GROUP_WIDTH, height: h },
+            data:     {
+                label,
+                phase,
+                ruleCount:  phaseRules.length,
+                collapsed:  isCollapsed,
+                onToggle:   () => onToggleGroup(groupId),
+            } satisfies GroupNodeData,
+            // NOTE: do NOT set selectable:false here — React Flow v11 applies
+            // pointer-events:none to the whole node wrapper when selectable is
+            // false, which prevents the collapse toggle button from firing.
             draggable:  false,
         })
+
+        // Skip children and intra-group edges when collapsed
+        if (isCollapsed) return
 
         phaseRules.forEach((rule, idx) => {
             const nodeId = `br-${rule.sys_id}`
@@ -185,7 +211,11 @@ function buildFlowElements(
     })
 
     // Inter-phase edges: Before → DB
-    const lastBeforeId = before.length > 0 ? `br-${before[before.length - 1].sys_id}` : null
+    // When the Before group is collapsed, route from the group handle directly.
+    const isBeforeCollapsed = collapsedGroups.has('group-before')
+    const lastBeforeId = (!isBeforeCollapsed && before.length > 0)
+        ? `br-${before[before.length - 1].sys_id}`
+        : null
     edges.push({
         id:       'edge-before-db',
         source:   lastBeforeId ?? 'group-before',
@@ -194,12 +224,16 @@ function buildFlowElements(
         type:     'smoothstep',
         animated: true,
         markerEnd: { type: MarkerType.ArrowClosed },
-        label:    lastBeforeId ? undefined : 'No Before rules',
+        label:    (!lastBeforeId && !isBeforeCollapsed) ? 'No Before rules' : undefined,
         style:    { stroke: '#3b82f6', strokeWidth: 2 },
     })
 
     // Inter-phase edges: DB → After
-    const firstAfterId = after.length > 0 ? `br-${after[0].sys_id}` : null
+    // When the After group is collapsed, route into the group handle directly.
+    const isAfterCollapsed = collapsedGroups.has('group-after')
+    const firstAfterId = (!isAfterCollapsed && after.length > 0)
+        ? `br-${after[0].sys_id}`
+        : null
     edges.push({
         id:       'edge-db-after',
         source:   'db-node',
@@ -208,7 +242,7 @@ function buildFlowElements(
         type:     'smoothstep',
         animated: true,
         markerEnd: { type: MarkerType.ArrowClosed },
-        label:    firstAfterId ? undefined : 'No After rules',
+        label:    (!firstAfterId && !isAfterCollapsed) ? 'No After rules' : undefined,
         style:    { stroke: '#22c55e', strokeWidth: 2 },
     })
 
@@ -233,6 +267,30 @@ export default function App() {
     const [error, setError]         = useState<string | null>(null)
     const [recentTables, setRecentTables] = useState<string[]>([])
 
+    // Tracks current table+rules without triggering re-renders on load
+    const currentTableRef = useRef<{ name: string; rules: BusinessRule[] } | null>(null)
+
+    // Which phase groups are currently folded
+    const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(new Set())
+
+    const handleToggleGroup = useCallback((groupId: string) => {
+        setCollapsedGroups(prev => {
+            const next = new Set(prev)
+            if (next.has(groupId)) next.delete(groupId)
+            else next.add(groupId)
+            return next
+        })
+    }, [])
+
+    // Rebuild flow whenever collapsed state changes (without resetting the viewport)
+    useEffect(() => {
+        if (!currentTableRef.current) return
+        const { name, rules } = currentTableRef.current
+        const { nodes: n, edges: e } = buildFlowElements(name, rules, collapsedGroups, handleToggleGroup)
+        setNodes(n)
+        setEdges(e)
+    }, [collapsedGroups, handleToggleGroup, setNodes, setEdges])
+
     // Load recent tables on mount
     useEffect(() => {
         getRecentTables()
@@ -245,6 +303,7 @@ export default function App() {
         setError(null)
         setNodes([])
         setEdges([])
+        currentTableRef.current = null
 
         try {
             const rules = await getBusinessRulesForTable(tableName)
@@ -252,9 +311,10 @@ export default function App() {
             if (rules.length === 0) {
                 setError(`No business rules found on table "${tableName}". Check the table name and try again.`)
             } else {
-                const { nodes: n, edges: e } = buildFlowElements(tableName, rules)
-                setNodes(n)
-                setEdges(e)
+                currentTableRef.current = { name: tableName, rules }
+                // Start with all groups collapsed — the group IDs are deterministic.
+                // Any ID that has no matching group node is simply ignored.
+                setCollapsedGroups(new Set(['group-before', 'group-after', 'group-async', 'group-display']))
             }
 
             // Persist preference fire-and-forget
