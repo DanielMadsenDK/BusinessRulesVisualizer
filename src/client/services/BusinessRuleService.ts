@@ -15,6 +15,11 @@ export interface BusinessRule {
     filter_condition: string
     condition: string
     description: string
+    /**
+     * Name of the ancestor table this rule is defined on, or null if the rule
+     * belongs directly to the queried table.
+     */
+    inherited_from: string | null
 }
 
 const SCRIPT_INCLUDE = 'x_1118332_brv.BusinessRuleService'

@@ -26,7 +26,7 @@ export default function BusinessRuleNode({ data }: NodeProps<BusinessRuleNodeDat
     const actionLabel = buildActionLabel(data)
 
     return (
-        <div className={`br-node${!data.active ? ' br-node--inactive' : ''}${data.isDetailOpen ? ' br-node--open' : ''}`}>
+        <div className={`br-node${!data.active ? ' br-node--inactive' : ''}${data.isDetailOpen ? ' br-node--open' : ''}${data.inherited_from ? ' br-node--inherited' : ''}`}>
             <Handle type="target" position={Position.Top} className="br-node__handle" />
 
             <div className="br-node__header">
@@ -36,6 +36,11 @@ export default function BusinessRuleNode({ data }: NodeProps<BusinessRuleNodeDat
                 )}
                 {data.abort_action && (
                     <span className="br-node__badge br-node__badge--abort">Aborts</span>
+                )}
+                {data.inherited_from && (
+                    <span className="br-node__badge br-node__badge--inherited" title={`Inherited from ${data.inherited_from}`}>
+                        Inherited: {data.inherited_from}
+                    </span>
                 )}
             </div>
 

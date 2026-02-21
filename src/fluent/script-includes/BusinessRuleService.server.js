@@ -2,10 +2,19 @@ var BusinessRuleService = Class.create();
 BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
 
     /**
-     * Returns all business rules for a given table (collection field).
+     * Returns all business rules for a given table (collection field), including
+     * rules inherited from ancestor tables.
+     *
+     * Uses GlideTableHierarchy.getHierarchy() (Scoped-compatible) to get the
+     * full parent chain — e.g. 'incident' → ['incident', 'task'].
+     *
+     * Each rule includes an `inherited_from` field:
+     *   - null   → rule belongs directly to the queried table
+     *   - string → name of the ancestor table the rule is defined on
+     *
      * Fields returned: sys_id, name, when, order, priority, active,
      *   action_insert, action_update, action_delete, action_query,
-     *   filter_condition, condition, description, abort_action
+     *   filter_condition, condition, description, abort_action, inherited_from
      */
     getBusinessRulesForTable: function () {
         var tableName = this.getParameter('sysparm_table');
@@ -13,30 +22,45 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
             return JSON.stringify({ error: 'Missing sysparm_table parameter' });
         }
 
-        var rules = [];
-        var gr = new GlideRecord('sys_script');
-        gr.addQuery('collection', tableName);
-        gr.orderBy('when');
-        gr.orderBy('order');
-        gr.query();
+        // GlideTableHierarchy returns the full ancestor chain as a Java ArrayList.
+        // Casting to string yields a comma-separated list e.g. "incident,task".
+        // Index 0 is the queried table itself; subsequent entries are ancestors.
+        var hierStr = '' + new GlideTableHierarchy(tableName).getHierarchy();
+        var tablesToQuery = hierStr.split(',');
 
-        while (gr.next()) {
-            rules.push({
-                sys_id:          gr.getValue('sys_id'),
-                name:            gr.getValue('name'),
-                when:            gr.getValue('when'),
-                order:           parseInt(gr.getValue('order'), 10) || 100,
-                priority:        parseInt(gr.getValue('priority'), 10) || 100,
-                active:          gr.getValue('active') === '1' || gr.getValue('active') === 'true',
-                action_insert:   gr.getValue('action_insert') === '1' || gr.getValue('action_insert') === 'true',
-                action_update:   gr.getValue('action_update') === '1' || gr.getValue('action_update') === 'true',
-                action_delete:   gr.getValue('action_delete') === '1' || gr.getValue('action_delete') === 'true',
-                action_query:    gr.getValue('action_query') === '1' || gr.getValue('action_query') === 'true',
-                abort_action:    gr.getValue('abort_action') === '1' || gr.getValue('abort_action') === 'true',
-                filter_condition: gr.getValue('filter_condition') || '',
-                condition:       gr.getValue('condition') || '',
-                description:     gr.getValue('description') || ''
-            });
+        var rules = [];
+
+        for (var i = 0; i < tablesToQuery.length; i++) {
+            var queryTable = tablesToQuery[i].trim();
+            if (!queryTable) continue;
+
+            var inheritedFrom = (i === 0) ? null : queryTable;
+
+            var gr = new GlideRecord('sys_script');
+            gr.addQuery('collection', queryTable);
+            gr.orderBy('when');
+            gr.orderBy('order');
+            gr.query();
+
+            while (gr.next()) {
+                rules.push({
+                    sys_id:           gr.getValue('sys_id'),
+                    name:             gr.getValue('name'),
+                    when:             gr.getValue('when'),
+                    order:            parseInt(gr.getValue('order'), 10) || 100,
+                    priority:         parseInt(gr.getValue('priority'), 10) || 100,
+                    active:           gr.getValue('active') === '1' || gr.getValue('active') === 'true',
+                    action_insert:    gr.getValue('action_insert') === '1' || gr.getValue('action_insert') === 'true',
+                    action_update:    gr.getValue('action_update') === '1' || gr.getValue('action_update') === 'true',
+                    action_delete:    gr.getValue('action_delete') === '1' || gr.getValue('action_delete') === 'true',
+                    action_query:     gr.getValue('action_query') === '1' || gr.getValue('action_query') === 'true',
+                    abort_action:     gr.getValue('abort_action') === '1' || gr.getValue('abort_action') === 'true',
+                    filter_condition: gr.getValue('filter_condition') || '',
+                    condition:        gr.getValue('condition') || '',
+                    description:      gr.getValue('description') || '',
+                    inherited_from:   inheritedFrom
+                });
+            }
         }
 
         return JSON.stringify(rules);

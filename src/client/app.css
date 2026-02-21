@@ -369,6 +369,22 @@ body {
     background: #f8fafc;
 }
 
+.br-node--inherited {
+    border: 1.5px dashed #f59e0b;
+    background: #fef9c3;
+}
+
+.br-node--inherited:hover {
+    border-color: #d97706;
+    background: #fef08a;
+}
+
+.br-node--inherited.br-node--open {
+    border-color: #3b82f6;
+    border-style: dashed;
+    background: #fef9c3;
+}
+
 .br-node__handle {
     opacity: 0;
     pointer-events: none;
@@ -393,22 +409,37 @@ body {
 }
 
 .br-node__badge {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 9999px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    flex-shrink: 0;
 }
 
 .br-node__badge--inactive {
     background: #e2e8f0;
     color: #64748b;
+    border: 1px solid #cbd5e1;
 }
 
 .br-node__badge--abort {
     background: #fee2e2;
     color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.br-node__badge--inherited {
+    background: #fef9c3;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    max-width: 130px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.br-node__inherited-tag {
+    display: none;
 }
 
 .br-node__name {
@@ -539,6 +570,15 @@ body {
     outline: none !important;
     box-shadow: none !important;
 }
+
+/* Suppress React Flow's outer wrapper selection ring on business rule nodes.
+   The inner .br-node div handles the selected/open state itself via
+   .br-node--open (blue ring) so the outer 0.5px solid wrapper ring would
+   visually conflict — especially with the dashed inherited border. */
+.react-flow__node-businessRuleNode.selected {
+    outline: none !important;
+    box-shadow: none !important;
+}
 /* ── React Flow overrides ───────────────────────────────────────────────────── */
 
 .react-flow__attribution {
@@ -659,6 +699,11 @@ body {
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     padding: 3px 8px;
+}
+
+.detail-panel__meta-pill--inherited {
+    border-color: #fde68a;
+    background: #fef9c3;
 }
 
 .detail-panel__meta-label {

@@ -111,6 +111,12 @@ export default function DetailPanel({ rule, onClose }: DetailPanelProps) {
                             <span className="detail-panel__meta-label">Priority</span>
                             <span className="detail-panel__meta-value">#{rule.priority}</span>
                         </span>
+                        {rule.inherited_from && (
+                            <span className="detail-panel__meta-pill detail-panel__meta-pill--inherited">
+                                <span className="detail-panel__meta-label">Inherited from</span>
+                                <span className="detail-panel__meta-value">{rule.inherited_from}</span>
+                            </span>
+                        )}
                         <span className={`detail-panel__status-badge${rule.active ? ' detail-panel__status-badge--active' : ' detail-panel__status-badge--inactive'}`}>
                             {rule.active ? 'Active' : 'Inactive'}
                         </span>
