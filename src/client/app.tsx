@@ -97,7 +97,7 @@ function buildFlowElements(
     const effectiveH = (groupId: string, count: number) =>
         collapsedGroups.has(groupId) ? COLLAPSED_H : groupHeight(count)
 
-    // Top row height = tallest group among before / after / async
+    // Top row height = tallest group among before / after / async (accounts for collapse)
     const topGroupH = Math.max(
         effectiveH('group-before', before.length),
         effectiveH('group-after',  after.length),
@@ -105,10 +105,8 @@ function buildFlowElements(
     )
 
     // Y positions
-    // Clamp dbY so the DB node never rises above the group row, even when all
-    // groups are collapsed (topGroupH < DB_HEIGHT would otherwise produce a
-    // negative offset that overlaps the section label).
-    const dbY              = Math.max(TOP_ROW_Y, TOP_ROW_Y + topGroupH / 2 - DB_HEIGHT / 2)
+    // DB node is always pinned to the top of the pipeline row — never moves.
+    const dbY              = TOP_ROW_Y
     const displaySectionY  = TOP_ROW_Y + topGroupH + ROW_GAP
     const displayRowY      = displaySectionY + SECTION_LABEL_H + 20
 
