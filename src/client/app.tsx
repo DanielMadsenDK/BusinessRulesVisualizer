@@ -17,6 +17,7 @@ import TableSelector from './components/TableSelector.js'
 import GroupNode, { type GroupNodeData } from './components/GroupNode.js'
 import BusinessRuleNode from './components/BusinessRuleNode.js'
 import DatabaseNode, { type DatabaseNodeData } from './components/DatabaseNode.js'
+import SectionLabelNode, { type SectionLabelNodeData } from './components/SectionLabelNode.js'
 
 import {
     type BusinessRule,
@@ -27,12 +28,16 @@ import {
 
 // ── Layout constants ───────────────────────────────────────────────────────────
 
-const NODE_WIDTH      = 220
-const NODE_HEIGHT     = 120
-const NODE_GAP        = 20
-const GROUP_HEADER    = 70
-const GROUP_PADDING_X = 20
-const GROUP_WIDTH     = NODE_WIDTH + GROUP_PADDING_X * 2
+const NODE_WIDTH        = 220
+const NODE_HEIGHT       = 120
+const NODE_GAP          = 20
+const GROUP_HEADER      = 70
+const GROUP_PADDING_X   = 20
+const GROUP_WIDTH       = NODE_WIDTH + GROUP_PADDING_X * 2
+const SECTION_LABEL_H   = 36   // height of each section label node
+const TOP_ROW_Y         = SECTION_LABEL_H + 20  // 56 — first row of groups
+const ROW_GAP           = 60   // vertical gap between the two pipeline rows
+const SECTION_LABEL_W   = 1100 // wide enough to span the full top row
 
 const COLUMN_X = { before: 50, db: 390, after: 630, async: 1040 }
 const DB_WIDTH  = 160
@@ -44,6 +49,7 @@ const nodeTypes: NodeTypes = {
     groupNode:        GroupNode,
     businessRuleNode: BusinessRuleNode,
     databaseNode:     DatabaseNode,
+    sectionLabelNode: SectionLabelNode,
 }
 
 // ── Flow builder ───────────────────────────────────────────────────────────────
@@ -51,12 +57,18 @@ const nodeTypes: NodeTypes = {
 /**
  * Transforms a flat list of BusinessRule records into React Flow nodes + edges.
  *
- * Layout:
- *   [Before Group]  →  [DB Node]  →  [After Group]    [Async Group]
+ * Layout (two independent rows):
+ *
+ *   ── Record Write Pipeline ───────────────────────────────────────────
+ *   [Before]  →  [DB Node]  →  [After]    [Async]
+ *
+ *   ── Form Load Pipeline ──────────────────────────────────────────────
+ *   [Display]
  *
  * - Rules within each phase are sorted by `order` and connected sequentially.
  * - Last Before rule → DB node → First After rule via animated connector edges.
- * - Async rules are laid out separately with no DB connection.
+ * - Async rules are in the top row but not connected to the DB pipeline.
+ * - Display rules appear in a separate second row with no DB connection.
  * - Group containers (parentId parents) are pushed to the front of the array
  *   so React Flow processes them before their children.
  */
@@ -64,32 +76,57 @@ function buildFlowElements(
     tableName: string,
     rules: BusinessRule[]
 ): { nodes: Node[]; edges: Edge[] } {
-    const before = rules.filter(r => r.when === 'before').sort((a, b) => a.order - b.order)
-    const after  = rules.filter(r => r.when === 'after').sort((a, b) => a.order - b.order)
-    const async_ = rules.filter(r => r.when === 'async').sort((a, b) => a.order - b.order)
+    const before  = rules.filter(r => r.when === 'before').sort((a, b) => a.order - b.order)
+    const after   = rules.filter(r => r.when === 'after').sort((a, b) => a.order - b.order)
+    const async_  = rules.filter(r => r.when === 'async').sort((a, b) => a.order - b.order)
+    const display = rules.filter(r => r.when === 'display').sort((a, b) => a.order - b.order)
 
     const groupHeight = (count: number) =>
         Math.max(140, GROUP_HEADER + count * (NODE_HEIGHT + NODE_GAP) + 20)
 
-    const maxGroupH = Math.max(groupHeight(before.length), groupHeight(after.length))
-    const dbY = 100 + maxGroupH / 2 - DB_HEIGHT / 2
+    // Top row height = tallest group among before / after / async
+    const topGroupH = Math.max(
+        groupHeight(before.length),
+        groupHeight(after.length),
+        async_.length > 0 ? groupHeight(async_.length) : 0
+    )
+
+    // Y positions
+    const dbY              = TOP_ROW_Y + topGroupH / 2 - DB_HEIGHT / 2
+    const displaySectionY  = TOP_ROW_Y + topGroupH + ROW_GAP
+    const displayRowY      = displaySectionY + SECTION_LABEL_H + 20
 
     const groupNodes: Node[] = []
     const ruleNodes:  Node[] = []
     const edges:      Edge[] = []
 
-    // Build a group container + its child rule nodes for one phase
+    // ── Section label helper ───────────────────────────────────────────────────
+    function addSectionLabel(id: string, label: string, sublabel: string, y: number, width = SECTION_LABEL_W) {
+        groupNodes.push({
+            id,
+            type:       'sectionLabelNode',
+            position:   { x: COLUMN_X.before, y },
+            style:      { width, height: SECTION_LABEL_H },
+            data:       { label, sublabel } satisfies SectionLabelNodeData,
+            selectable: false,
+            draggable:  false,
+            connectable: false,
+        })
+    }
+
+    // ── Phase group + children helper ─────────────────────────────────────────
     function addPhase(
         phaseRules: BusinessRule[],
         groupId: string,
-        phase: 'before' | 'after' | 'async',
+        phase: 'before' | 'after' | 'async' | 'display',
         label: string,
-        colX: number
+        colX: number,
+        rowY: number
     ) {
         groupNodes.push({
             id:       groupId,
             type:     'groupNode',
-            position: { x: colX, y: 100 },
+            position: { x: colX, y: rowY },
             style:    { width: GROUP_WIDTH, height: groupHeight(phaseRules.length) },
             data:     { label, phase, ruleCount: phaseRules.length } satisfies GroupNodeData,
             selectable: false,
@@ -112,28 +149,32 @@ function buildFlowElements(
                 draggable: false,
             })
 
-            // Sequential edge to next rule in same phase
+            // Sequential edge to the next rule in the same phase
             if (idx < phaseRules.length - 1) {
                 const nextId = `br-${phaseRules[idx + 1].sys_id}`
                 edges.push({
-                    id:     `seq-${nodeId}-${nextId}`,
-                    source: nodeId,
-                    target: nextId,
-                    type:   'smoothstep',
+                    id:        `seq-${nodeId}-${nextId}`,
+                    source:    nodeId,
+                    target:    nextId,
+                    type:      'smoothstep',
                     markerEnd: { type: MarkerType.ArrowClosed },
-                    style: { stroke: '#94a3b8' },
+                    style:     { stroke: '#94a3b8' },
                 })
             }
         })
     }
 
-    addPhase(before, 'group-before', 'before', 'Before', COLUMN_X.before)
-    addPhase(after,  'group-after',  'after',  'After',  COLUMN_X.after)
+    // ── Top row: Record Write Pipeline ────────────────────────────────────────
+    addSectionLabel('label-write', 'Record Write Pipeline',
+        'before → database operation → after  ·  async (fire & forget)', 0)
+
+    addPhase(before, 'group-before', 'before', 'Before', COLUMN_X.before, TOP_ROW_Y)
+    addPhase(after,  'group-after',  'after',  'After',  COLUMN_X.after,  TOP_ROW_Y)
     if (async_.length > 0) {
-        addPhase(async_, 'group-async', 'async', 'Async', COLUMN_X.async)
+        addPhase(async_, 'group-async', 'async', 'Async', COLUMN_X.async, TOP_ROW_Y)
     }
 
-    // DB node — parent nodes must come before children, so push after groups
+    // DB node — group containers must appear before their children in the array
     ruleNodes.push({
         id:       'db-node',
         type:     'databaseNode',
@@ -146,30 +187,38 @@ function buildFlowElements(
     // Inter-phase edges: Before → DB
     const lastBeforeId = before.length > 0 ? `br-${before[before.length - 1].sys_id}` : null
     edges.push({
-        id:     'edge-before-db',
-        source: lastBeforeId ?? 'group-before',
+        id:       'edge-before-db',
+        source:   lastBeforeId ?? 'group-before',
         ...(lastBeforeId ? {} : { sourceHandle: 'group-source' }),
-        target: 'db-node',
-        type:   'smoothstep',
+        target:   'db-node',
+        type:     'smoothstep',
         animated: true,
         markerEnd: { type: MarkerType.ArrowClosed },
-        label:  lastBeforeId ? undefined : 'No Before rules',
-        style:  { stroke: '#3b82f6', strokeWidth: 2 },
+        label:    lastBeforeId ? undefined : 'No Before rules',
+        style:    { stroke: '#3b82f6', strokeWidth: 2 },
     })
 
     // Inter-phase edges: DB → After
     const firstAfterId = after.length > 0 ? `br-${after[0].sys_id}` : null
     edges.push({
-        id:     'edge-db-after',
-        source: 'db-node',
-        target: firstAfterId ?? 'group-after',
+        id:       'edge-db-after',
+        source:   'db-node',
+        target:   firstAfterId ?? 'group-after',
         ...(firstAfterId ? {} : { targetHandle: 'group-target' }),
-        type:   'smoothstep',
+        type:     'smoothstep',
         animated: true,
         markerEnd: { type: MarkerType.ArrowClosed },
-        label:  firstAfterId ? undefined : 'No After rules',
-        style:  { stroke: '#22c55e', strokeWidth: 2 },
+        label:    firstAfterId ? undefined : 'No After rules',
+        style:    { stroke: '#22c55e', strokeWidth: 2 },
     })
+
+    // ── Bottom row: Form Load Pipeline (Display rules only) ───────────────────
+    if (display.length > 0) {
+        addSectionLabel('label-display', 'Form Load Pipeline',
+            'display rules run before a record is rendered in the form — no database write',
+            displaySectionY, GROUP_WIDTH)
+        addPhase(display, 'group-display', 'display', 'Display', COLUMN_X.before, displayRowY)
+    }
 
     // Group containers MUST appear before children in the array
     return { nodes: [...groupNodes, ...ruleNodes], edges }
@@ -266,11 +315,14 @@ export default function App() {
                         nodeColor={(node) => {
                             if (node.type === 'groupNode') {
                                 const phase = (node.data as GroupNodeData).phase
-                                return phase === 'before' ? '#3b82f6'
-                                    : phase === 'after'  ? '#22c55e'
-                                    : '#f59e0b'
+                                return phase === 'before'  ? '#3b82f6'
+                                    :  phase === 'after'   ? '#22c55e'
+                                    :  phase === 'async'   ? '#f59e0b'
+                                    :  phase === 'display' ? '#a855f7'
+                                    :  '#94a3b8'
                             }
                             if (node.type === 'databaseNode') return '#475569'
+                            if (node.type === 'sectionLabelNode') return 'transparent'
                             return '#cbd5e1'
                         }}
                         maskColor="rgba(255,255,255,0.6)"

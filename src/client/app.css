@@ -275,6 +275,16 @@ body {
     background: #fffbeb;
 }
 
+.group-node--display {
+    border-color: #a855f7;
+    color: #7e22ce;
+}
+
+.group-node--display .group-node__header {
+    border-color: #e9d5ff;
+    background: #faf5ff;
+}
+
 /* ── Business Rule node card ────────────────────────────────────────────────── */
 
 .br-node {
@@ -419,7 +429,53 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+/* ── Section label node ────────────────────────────────────────────────────────── */
 
+.section-label-node {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+    user-select: none;
+}
+
+.section-label-node__line {
+    flex: 1;
+    height: 1px;
+    background: #cbd5e1;
+}
+
+.section-label-node__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.section-label-node__text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.section-label-node__sub {
+    font-size: 10px;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+/* Hide React Flow selection outline on section labels */
+.react-flow__node-sectionLabelNode .react-flow__node-toolbar,
+.react-flow__node-sectionLabelNode.selected > * {
+    outline: none !important;
+    box-shadow: none !important;
+}
 /* ── React Flow overrides ───────────────────────────────────────────────────── */
 
 .react-flow__attribution {

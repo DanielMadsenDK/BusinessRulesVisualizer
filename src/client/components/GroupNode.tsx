@@ -3,8 +3,8 @@ import { Handle, Position, NodeProps } from 'reactflow'
 
 export interface GroupNodeData {
     label: string
-    /** 'before' | 'after' | 'async' */
-    phase: 'before' | 'after' | 'async'
+    /** 'before' | 'after' | 'async' | 'display' */
+    phase: 'before' | 'after' | 'async' | 'display'
     ruleCount: number
 }
 
