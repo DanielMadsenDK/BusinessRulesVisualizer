@@ -6,6 +6,8 @@ interface TableSelectorProps {
     recentTables: string[]
     onVisualize: (tableName: string) => void
     onDismissError: () => void
+    hideInherited: boolean
+    onToggleHideInherited: () => void
 }
 
 /**
@@ -22,6 +24,8 @@ export default function TableSelector({
     recentTables,
     onVisualize,
     onDismissError,
+    hideInherited,
+    onToggleHideInherited,
 }: TableSelectorProps) {
     const [inputValue, setInputValue] = useState('')
     const inputRef = useRef<HTMLInputElement>(null)
@@ -81,6 +85,17 @@ export default function TableSelector({
                         onClick={handleSubmit as unknown as React.MouseEventHandler}
                     />
                 </form>
+
+                {/* Filter: hide inherited rules */}
+                <label className="table-selector__filter">
+                    <input
+                        type="checkbox"
+                        className="table-selector__filter-check"
+                        checked={hideInherited}
+                        onChange={onToggleHideInherited}
+                    />
+                    <span className="table-selector__filter-label">Hide inherited</span>
+                </label>
             </div>
 
             {/* Error alert */}

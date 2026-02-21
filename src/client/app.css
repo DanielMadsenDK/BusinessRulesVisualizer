@@ -138,6 +138,36 @@ body {
     cursor: not-allowed;
 }
 
+/* Inline filter controls (checkboxes) */
+
+.table-selector__filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.table-selector__filter-check {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.table-selector__filter-label {
+    font-size: 13px;
+    color: #475569;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.table-selector__filter:hover .table-selector__filter-label {
+    color: #0f172a;
+}
+
 /* Recent chips row */
 
 .table-selector__recents {

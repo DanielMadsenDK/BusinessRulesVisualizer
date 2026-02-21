@@ -269,12 +269,23 @@ export default function App() {
     const [error, setError]             = useState<string | null>(null)
     const [recentTables, setRecentTables] = useState<string[]>([])
     const [selectedRule, setSelectedRule] = useState<BusinessRule | null>(null)
+    const [hideInherited, setHideInherited] = useState(false)
 
     // Tracks current table+rules without triggering re-renders on load
     const currentTableRef = useRef<{ name: string; rules: BusinessRule[] } | null>(null)
 
     // Which phase groups are currently folded
     const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(new Set())
+
+    const handleToggleHideInherited = useCallback(() => {
+        setHideInherited(prev => {
+            if (!prev) {
+                // Enabling filter: close detail panel if it's showing an inherited rule
+                setSelectedRule(r => (r?.inherited_from != null ? null : r))
+            }
+            return !prev
+        })
+    }, [])
 
     const handleToggleGroup = useCallback((groupId: string) => {
         setCollapsedGroups(prev => {
@@ -294,16 +305,17 @@ export default function App() {
 
     const handlePanelClose = useCallback(() => setSelectedRule(null), [])
 
-    // Rebuild flow whenever collapsed state or selected rule changes
+    // Rebuild flow whenever collapsed state, selected rule, or inherited filter changes
     useEffect(() => {
         if (!currentTableRef.current) return
         const { name, rules } = currentTableRef.current
+        const filteredRules = hideInherited ? rules.filter(r => r.inherited_from == null) : rules
         const { nodes: n, edges: e } = buildFlowElements(
-            name, rules, collapsedGroups, handleToggleGroup, selectedRuleId
+            name, filteredRules, collapsedGroups, handleToggleGroup, selectedRuleId
         )
         setNodes(n)
         setEdges(e)
-    }, [collapsedGroups, handleToggleGroup, selectedRuleId, setNodes, setEdges])
+    }, [collapsedGroups, handleToggleGroup, selectedRuleId, hideInherited, setNodes, setEdges])
 
     // Load recent tables on mount
     useEffect(() => {
@@ -355,6 +367,8 @@ export default function App() {
                 recentTables={recentTables}
                 onVisualize={handleVisualize}
                 onDismissError={() => setError(null)}
+                hideInherited={hideInherited}
+                onToggleHideInherited={handleToggleHideInherited}
             />
 
             <div className="brvApp__canvas">
