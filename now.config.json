@@ -1,0 +1,6 @@
+{
+  "scope": "x_1118332_brv",
+  "scopeId": "c2405a87a5644703bb990eb7265715c1",
+  "name": "Business Rules Visualizer",
+  "tsconfigPath": "./src/server/tsconfig.json"
+}
