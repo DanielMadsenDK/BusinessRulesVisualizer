@@ -18,6 +18,7 @@ import GroupNode, { type GroupNodeData } from './components/GroupNode.js'
 import BusinessRuleNode from './components/BusinessRuleNode.js'
 import DatabaseNode, { type DatabaseNodeData } from './components/DatabaseNode.js'
 import SectionLabelNode, { type SectionLabelNodeData } from './components/SectionLabelNode.js'
+import DetailPanel from './components/DetailPanel.js'
 
 import {
     type BusinessRule,
@@ -80,7 +81,8 @@ function buildFlowElements(
     tableName: string,
     rules: BusinessRule[],
     collapsedGroups: ReadonlySet<string>,
-    onToggleGroup: (groupId: string) => void
+    onToggleGroup: (groupId: string) => void,
+    selectedRuleId: string | null = null
 ): { nodes: Node[]; edges: Edge[] } {
     const before  = rules.filter(r => r.when === 'before').sort((a, b) => a.order - b.order)
     const after   = rules.filter(r => r.when === 'after').sort((a, b) => a.order - b.order)
@@ -171,7 +173,7 @@ function buildFlowElements(
                     y: GROUP_HEADER + idx * (NODE_HEIGHT + NODE_GAP),
                 },
                 style:    { width: NODE_WIDTH, height: NODE_HEIGHT },
-                data:     { ...rule },
+                data:     { ...rule, isDetailOpen: rule.sys_id === selectedRuleId },
                 draggable: false,
             })
 
@@ -263,9 +265,10 @@ function buildFlowElements(
 export default function App() {
     const [nodes, setNodes, onNodesChange] = useNodesState([])
     const [edges, setEdges, onEdgesChange] = useEdgesState([])
-    const [loading, setLoading]     = useState(false)
-    const [error, setError]         = useState<string | null>(null)
+    const [loading, setLoading]         = useState(false)
+    const [error, setError]             = useState<string | null>(null)
     const [recentTables, setRecentTables] = useState<string[]>([])
+    const [selectedRule, setSelectedRule] = useState<BusinessRule | null>(null)
 
     // Tracks current table+rules without triggering re-renders on load
     const currentTableRef = useRef<{ name: string; rules: BusinessRule[] } | null>(null)
@@ -282,14 +285,25 @@ export default function App() {
         })
     }, [])
 
-    // Rebuild flow whenever collapsed state changes (without resetting the viewport)
+    const selectedRuleId = selectedRule?.sys_id ?? null
+
+    const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+        if (node.type !== 'businessRuleNode') return
+        setSelectedRule(node.data as BusinessRule)
+    }, [])
+
+    const handlePanelClose = useCallback(() => setSelectedRule(null), [])
+
+    // Rebuild flow whenever collapsed state or selected rule changes
     useEffect(() => {
         if (!currentTableRef.current) return
         const { name, rules } = currentTableRef.current
-        const { nodes: n, edges: e } = buildFlowElements(name, rules, collapsedGroups, handleToggleGroup)
+        const { nodes: n, edges: e } = buildFlowElements(
+            name, rules, collapsedGroups, handleToggleGroup, selectedRuleId
+        )
         setNodes(n)
         setEdges(e)
-    }, [collapsedGroups, handleToggleGroup, setNodes, setEdges])
+    }, [collapsedGroups, handleToggleGroup, selectedRuleId, setNodes, setEdges])
 
     // Load recent tables on mount
     useEffect(() => {
@@ -312,6 +326,7 @@ export default function App() {
                 setError(`No business rules found on table "${tableName}". Check the table name and try again.`)
             } else {
                 currentTableRef.current = { name: tableName, rules }
+                setSelectedRule(null)
                 // Start with all groups collapsed — the group IDs are deterministic.
                 // Any ID that has no matching group node is simply ignored.
                 setCollapsedGroups(new Set(['group-before', 'group-after', 'group-async', 'group-display']))
@@ -360,6 +375,8 @@ export default function App() {
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     nodeTypes={nodeTypes}
+                    onNodeClick={handleNodeClick}
+                    onPaneClick={handlePanelClose}
                     fitView
                     fitViewOptions={{ padding: 0.2 }}
                     nodesDraggable={false}
@@ -388,6 +405,8 @@ export default function App() {
                         maskColor="rgba(255,255,255,0.6)"
                     />
                 </ReactFlow>
+
+                <DetailPanel rule={selectedRule} onClose={handlePanelClose} />
             </div>
         </div>
     )

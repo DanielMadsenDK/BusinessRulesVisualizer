@@ -60,3 +60,19 @@ export async function getRecentTables(): Promise<string[]> {
 export async function saveTablePreference(tableName: string): Promise<void> {
     await callGlideAjax('saveTablePreference', { sysparm_table: tableName })
 }
+
+export interface BusinessRuleScript {
+    /** Full script body (ServiceNow JavaScript) */
+    script: string
+}
+
+/**
+ * Fetch the script body for a single business rule on demand.
+ * Separated from getBusinessRulesForTable to keep the list payload small.
+ */
+export async function getScriptForRule(sysId: string): Promise<BusinessRuleScript> {
+    const raw = await callGlideAjax('getScriptForRule', { sysparm_sys_id: sysId })
+    const parsed = JSON.parse(raw)
+    if (parsed.error) throw new Error(parsed.error)
+    return parsed as BusinessRuleScript
+}

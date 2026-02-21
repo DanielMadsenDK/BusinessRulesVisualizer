@@ -2,7 +2,10 @@ import React from 'react'
 import { Handle, Position, NodeProps } from 'reactflow'
 import type { BusinessRule } from '../services/BusinessRuleService.js'
 
-export type BusinessRuleNodeData = BusinessRule
+export type BusinessRuleNodeData = BusinessRule & {
+    /** True when this rule's detail panel is currently open */
+    isDetailOpen?: boolean
+}
 
 /** Builds a compact comma-separated list of triggered operations */
 function buildActionLabel(rule: BusinessRule): string {
@@ -23,7 +26,7 @@ export default function BusinessRuleNode({ data }: NodeProps<BusinessRuleNodeDat
     const actionLabel = buildActionLabel(data)
 
     return (
-        <div className={`br-node ${!data.active ? 'br-node--inactive' : ''}`}>
+        <div className={`br-node${!data.active ? ' br-node--inactive' : ''}${data.isDetailOpen ? ' br-node--open' : ''}`}>
             <Handle type="target" position={Position.Top} className="br-node__handle" />
 
             <div className="br-node__header">

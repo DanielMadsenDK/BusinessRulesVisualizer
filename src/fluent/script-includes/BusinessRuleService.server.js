@@ -86,6 +86,27 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
      * (max 10 entries, no duplicates).
      * Param: sysparm_table — the table name to add.
      */
+    /**
+     * Returns the script body and extended metadata for a single rule by sys_id.
+     * Called on-demand when the user opens the detail panel for a specific rule.
+     * Param: sysparm_sys_id — the sys_id of the sys_script record.
+     */
+    getScriptForRule: function () {
+        var sysId = this.getParameter('sysparm_sys_id');
+        if (!sysId) {
+            return JSON.stringify({ error: 'Missing sysparm_sys_id parameter' });
+        }
+
+        var gr = new GlideRecord('sys_script');
+        if (!gr.get(sysId)) {
+            return JSON.stringify({ error: 'Record not found: ' + sysId });
+        }
+
+        return JSON.stringify({
+            script: gr.getValue('script') || ''
+        });
+    },
+
     saveTablePreference: function () {
         var tableName = this.getParameter('sysparm_table');
         if (!tableName) {
