@@ -25,6 +25,10 @@ declare global {
                         table: 'sys_module'
                         id: '2dc2cceb7cca4cb5baf6731ddc33b002'
                     }
+                    'si.business_rule_service': {
+                        table: 'sys_script_include'
+                        id: 'adcd2586f6704c598d38e41dfc704e5f'
+                    }
                     'x_1118332_brv/main': {
                         table: 'sys_ux_lib_asset'
                         id: '21ab608f334f4bbdabc778afa0218be1'
