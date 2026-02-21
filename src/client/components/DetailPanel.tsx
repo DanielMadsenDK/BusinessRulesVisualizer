@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
+import { Highlight, themes } from 'prism-react-renderer'
 import type { BusinessRule } from '../services/BusinessRuleService.js'
 import { getScriptForRule } from '../services/BusinessRuleService.js'
 
@@ -188,7 +189,19 @@ export default function DetailPanel({ rule, onClose }: DetailPanelProps) {
 
                         {script !== null && !scriptLoading && !scriptError && (
                             script.trim() ? (
-                                <pre className="detail-panel__script"><code>{script}</code></pre>
+                                <Highlight theme={themes.vsDark} code={script} language="javascript">
+                                    {({ style, tokens, getLineProps, getTokenProps }) => (
+                                        <pre className="detail-panel__script" style={style}>
+                                            {tokens.map((line, i) => (
+                                                <div key={i} {...getLineProps({ line })}>
+                                                    {line.map((token, key) => (
+                                                        <span key={key} {...getTokenProps({ token })} />
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </pre>
+                                    )}
+                                </Highlight>
                             ) : (
                                 <div className="detail-panel__prose detail-panel__prose--muted">No script content.</div>
                             )

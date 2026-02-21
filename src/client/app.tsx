@@ -29,6 +29,8 @@ import {
 
 // ── Layout constants ───────────────────────────────────────────────────────────
 
+
+
 const NODE_WIDTH        = 220
 const NODE_HEIGHT       = 120
 const NODE_GAP          = 20
@@ -368,7 +370,6 @@ export default function App() {
                         </div>
                     </div>
                 )}
-
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}

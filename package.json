@@ -27,6 +27,7 @@
     "@servicenow/now-button": "^19.8.2-ecd",
     "@servicenow/now-icon": "^19.8.2-ecd",
     "@servicenow/now-loader": "^19.8.2-ecd",
+    "prism-react-renderer": "^2.4.1",
     "react": "19.x",
     "react-dom": "19.x",
     "reactflow": "^11.11.4"

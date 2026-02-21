@@ -808,24 +808,16 @@ body {
 }
 
 .detail-panel__script {
-    background: #0f172a;
-    color: #e2e8f0;
+    /* background + color come from the Prism theme via the style prop */
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 11px;
     line-height: 1.6;
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: 12px 14px !important;
     overflow: auto;
     max-height: 340px;
     white-space: pre;
     margin: 0;
-}
-
-.detail-panel__script code {
-    font-family: inherit;
-    font-size: inherit;
-    background: none;
-    color: inherit;
 }
 
 .detail-panel__script-status {
