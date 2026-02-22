@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Autocomplete, Button, Group, Alert, Title, ActionIcon, Container, Menu, Tooltip, Switch } from '@mantine/core'
 import { IconSettings, IconAlertCircle, IconSearch, IconHistory } from '@tabler/icons-react'
+import { searchTables, TableSuggestion } from '../services/BusinessRuleService'
 
 interface TableSelectorProps {
     loading: boolean
@@ -38,6 +39,7 @@ export default function TableSelector({
     onToggleHideInactive,
 }: TableSelectorProps) {
     const [inputValue, setInputValue] = useState('')
+    const [suggestions, setSuggestions] = useState<TableSuggestion[]>([])
     const inputRef = useRef<HTMLInputElement>(null)
 
     // Focus input on mount
@@ -45,15 +47,33 @@ export default function TableSelector({
         inputRef.current?.focus()
     }, [])
 
+    // Debounce search
+    useEffect(() => {
+        if (!inputValue.trim()) {
+            setSuggestions([])
+            return
+        }
+        const timer = setTimeout(() => {
+            searchTables(inputValue.trim()).then(setSuggestions).catch(console.error)
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [inputValue])
+
+    function extractTableName(val: string): string {
+        const match = val.match(/\(([^)]+)\)$/)
+        return match ? match[1] : val
+    }
+
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
-        const table = inputValue.trim()
+        const table = extractTableName(inputValue.trim())
         if (table) onVisualize(table)
     }
 
     function handleOptionSubmit(val: string) {
         setInputValue(val)
-        onVisualize(val)
+        const table = extractTableName(val)
+        onVisualize(table)
     }
 
     return (
@@ -95,7 +115,7 @@ export default function TableSelector({
                         <Autocomplete
                             ref={inputRef}
                             placeholder="Enter table name (e.g. incident)"
-                            data={[]} // Ready for ServiceNow table suggestions
+                            data={suggestions.map(s => s.label)}
                             value={inputValue}
                             onChange={setInputValue}
                             onOptionSubmit={handleOptionSubmit}

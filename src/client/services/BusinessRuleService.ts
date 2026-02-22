@@ -55,6 +55,18 @@ export async function getAvailableTables(): Promise<string[]> {
     return JSON.parse(raw) as string[]
 }
 
+export interface TableSuggestion {
+    value: string
+    label: string
+}
+
+/** Search for tables by name or label */
+export async function searchTables(query: string): Promise<TableSuggestion[]> {
+    if (!query) return []
+    const raw = await callGlideAjax('searchTables', { sysparm_query: query })
+    return JSON.parse(raw) as TableSuggestion[]
+}
+
 /** Fetch recently viewed tables for the current user (from sys_user_preference) */
 export async function getRecentTables(): Promise<string[]> {
     const raw = await callGlideAjax('getRecentTables')

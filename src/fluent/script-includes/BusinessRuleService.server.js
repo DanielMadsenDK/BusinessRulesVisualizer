@@ -106,6 +106,32 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
     },
 
     /**
+     * Searches for tables by name or label, returning up to 20 matches.
+     * Used for the autocomplete search box.
+     */
+    searchTables: function () {
+        var query = this.getParameter('sysparm_query');
+        if (!query) return JSON.stringify([]);
+
+        var tables = [];
+        var gr = new GlideRecord('sys_db_object');
+        var qc = gr.addQuery('name', 'CONTAINS', query);
+        qc.addOrCondition('label', 'CONTAINS', query);
+        gr.orderBy('label');
+        gr.setLimit(20);
+        gr.query();
+
+        while (gr.next()) {
+            tables.push({
+                value: gr.getValue('name'),
+                label: gr.getValue('label') + ' (' + gr.getValue('name') + ')'
+            });
+        }
+
+        return JSON.stringify(tables);
+    },
+
+    /**
      * Adds a table name to the front of the user's recent-tables preference
      * (max 10 entries, no duplicates).
      * Param: sysparm_table — the table name to add.
