@@ -465,13 +465,13 @@ export default function App() {
 
     return (
         <AppShell
-            header={{ height: 60 }}
+            header={{ height: 90 }}
             padding="md"
             styles={{
                 main: {
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 'calc(100vh - 60px)',
+                    height: 'calc(100vh - 90px)',
                     overflow: 'hidden'
                 }
             }}

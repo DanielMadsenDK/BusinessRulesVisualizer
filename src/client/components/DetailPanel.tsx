@@ -88,7 +88,7 @@ export default function DetailPanel({ rule, onClose }: DetailPanelProps) {
             }
             styles={{
                 header: { borderBottom: '1px solid var(--mantine-color-gray-3)', paddingBottom: 'var(--mantine-spacing-sm)' },
-                body: { padding: 0, height: 'calc(100vh - 60px)' }
+                body: { padding: 0, height: 'calc(100vh - 90px)' }
             }}
         >
             {rule && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Autocomplete, Button, Group, Alert, Title, ActionIcon, Container, Menu, Tooltip, Switch, TextInput, SegmentedControl } from '@mantine/core'
+import { Autocomplete, Button, Group, Alert, Title, ActionIcon, Container, Menu, Tooltip, Switch, TextInput, SegmentedControl, Stack, Text, Anchor } from '@mantine/core'
 import { IconSettings, IconAlertCircle, IconSearch, IconHistory, IconTrash } from '@tabler/icons-react'
 import { searchTables, TableSuggestion } from '../services/BusinessRuleService'
 
@@ -88,11 +88,17 @@ export default function TableSelector({
         <Container fluid px="md" h="100%">
             <Group wrap="nowrap" align="center" w="100%" h="100%">
                 {/* Left: Brand */}
-                <Group gap="sm" wrap="nowrap" style={{ flex: 1 }}>
-                    <ActionIcon variant="light" size="lg" radius="md" color="blue" aria-hidden="true">
-                        <IconSettings size={20} />
+                <Group gap="md" wrap="nowrap" style={{ flex: 1 }}>
+                    <ActionIcon variant="light" radius="md" color="blue" aria-hidden="true" style={{ width: 54, height: 54 }}>
+                        <IconSettings size={32} />
                     </ActionIcon>
-                    <Title order={4} style={{ whiteSpace: 'nowrap' }}>Business Rules Visualizer</Title>
+                    <Stack gap={2}>
+                        <Title order={3} style={{ whiteSpace: 'nowrap', lineHeight: 1.1 }}>Business Rules Visualizer</Title>
+                        <Text size="sm" c="dimmed" style={{ lineHeight: 1.2 }}>Visualize ServiceNow business rules execution order</Text>
+                        <Text size="xs" c="dimmed" fs="italic" style={{ lineHeight: 1.2 }}>
+                            Created by <Anchor href="https://www.linkedin.com/in/danielaagrenmadsen/" target="_blank" fs="italic">Daniel Aagren Seehartrai Madsen</Anchor> • ServiceNow Rising Star 2025
+                        </Text>
+                    </Stack>
                 </Group>
 
                 {/* Center: Search Form & History */}
@@ -220,7 +226,7 @@ export default function TableSelector({
                     withCloseButton 
                     onClose={onDismissError}
                     variant="light"
-                    style={{ position: 'absolute', top: 70, right: 20, zIndex: 1000, maxWidth: 400, boxShadow: 'var(--mantine-shadow-md)' }}
+                    style={{ position: 'absolute', top: 100, right: 20, zIndex: 1000, maxWidth: 400, boxShadow: 'var(--mantine-shadow-md)' }}
                 >
                     {error}
                 </Alert>
