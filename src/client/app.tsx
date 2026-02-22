@@ -20,6 +20,7 @@ import TableSelector from './components/TableSelector.js'
 import GroupNode, { type GroupNodeData } from './components/GroupNode.js'
 import BusinessRuleNode from './components/BusinessRuleNode.js'
 import DatabaseNode, { type DatabaseNodeData } from './components/DatabaseNode.js'
+import FormNode, { type FormNodeData } from './components/FormNode.js'
 import SectionLabelNode, { type SectionLabelNodeData } from './components/SectionLabelNode.js'
 import DetailPanel from './components/DetailPanel.js'
 
@@ -57,6 +58,7 @@ const nodeTypes: NodeTypes = {
     groupNode:        GroupNode,
     businessRuleNode: BusinessRuleNode,
     databaseNode:     DatabaseNode,
+    formNode:         FormNode,
     sectionLabelNode: SectionLabelNode,
 }
 
@@ -100,23 +102,6 @@ function buildFlowElements(
 
     const effectiveH = (groupId: string, count: number) =>
         collapsedGroups.has(groupId) ? COLLAPSED_H : groupHeight(count)
-
-    // Top row height = tallest group among before / after / async (accounts for collapse)
-    const topGroupH = Math.max(
-        effectiveH('group-before', before.length),
-        effectiveH('group-after',  after.length),
-        async_.length > 0 ? effectiveH('group-async', async_.length) : 0
-    )
-
-    // Y positions
-    // DB node is always pinned to the top of the pipeline row — never moves.
-    const dbY = TOP_ROW_Y
-    // The top-row effective height must be at least DB_HEIGHT so the Display
-    // section never overlaps the DB node (which stays fixed at DB_HEIGHT tall
-    // regardless of whether the phase groups are collapsed).
-    const topRowH         = Math.max(topGroupH, DB_HEIGHT)
-    const displaySectionY = TOP_ROW_Y + topRowH + ROW_GAP
-    const displayRowY     = displaySectionY + SECTION_LABEL_H + 20
 
     const groupNodes: Node[] = []
     const ruleNodes:  Node[] = []
@@ -200,28 +185,97 @@ function buildFlowElements(
         })
     }
 
-    // ── Top row: Record Write Pipeline ────────────────────────────────────────
-    addSectionLabel('label-write', 'Record Write Pipeline',
-        'before → database operation → after  ·  async (fire & forget)', 0)
+    let currentY = 0
 
-    addPhase(before, 'group-before', 'before', 'Before', COLUMN_X.before, TOP_ROW_Y)
-    addPhase(after,  'group-after',  'after',  'After',  COLUMN_X.after,  TOP_ROW_Y)
-    if (async_.length > 0) {
-        addPhase(async_, 'group-async', 'async', 'Async', COLUMN_X.async, TOP_ROW_Y)
+    // ── Top row: Form Load Pipeline (Display rules only) ───────────────────
+    if (display.length > 0) {
+        addSectionLabel('label-display', 'Form Load Pipeline',
+            'database read → display rules → form render',
+            currentY, SECTION_LABEL_W)
+            
+        const displayRowY = currentY + SECTION_LABEL_H + 44
+        
+        // DB Node
+        ruleNodes.push({
+            id:       'db-node-display',
+            type:     'databaseNode',
+            position: { x: COLUMN_X.before, y: displayRowY },
+            style:    { width: DB_WIDTH, height: DB_HEIGHT },
+            data:     { tableName } satisfies DatabaseNodeData,
+            draggable: false,
+        })
+        
+        // Display Group
+        addPhase(display, 'group-display', 'display', 'Display', COLUMN_X.db, displayRowY)
+        
+        // Form Node
+        ruleNodes.push({
+            id:       'form-node',
+            type:     'formNode',
+            position: { x: COLUMN_X.after + 150, y: displayRowY },
+            style:    { width: DB_WIDTH, height: DB_HEIGHT },
+            data:     { tableName } satisfies FormNodeData,
+            draggable: false,
+        })
+        
+        // Edges
+        const isDisplayCollapsed = collapsedGroups.has('group-display')
+        const firstDisplayId = (!isDisplayCollapsed && display.length > 0)
+            ? `br-${display[0].sys_id}`
+            : null
+        edges.push({
+            id:       'edge-db-display',
+            source:   'db-node-display',
+            target:   firstDisplayId ?? 'group-display',
+            ...(firstDisplayId ? {} : { targetHandle: 'group-target' }),
+            type:     'smoothstep',
+            animated: true,
+            markerEnd: { type: MarkerType.ArrowClosed },
+            style:    { stroke: '#a855f7', strokeWidth: 2 },
+        })
+        
+        const lastDisplayId = (!isDisplayCollapsed && display.length > 0)
+            ? `br-${display[display.length - 1].sys_id}`
+            : null
+        edges.push({
+            id:       'edge-display-form',
+            source:   lastDisplayId ?? 'group-display',
+            ...(lastDisplayId ? {} : { sourceHandle: 'group-source' }),
+            target:   'form-node',
+            type:     'smoothstep',
+            animated: true,
+            markerEnd: { type: MarkerType.ArrowClosed },
+            style:    { stroke: '#a855f7', strokeWidth: 2 },
+        })
+        
+        const displayGroupH = effectiveH('group-display', display.length)
+        const topRowH = Math.max(displayGroupH, DB_HEIGHT)
+        currentY = displayRowY + topRowH + ROW_GAP
     }
 
-    // DB node — group containers must appear before their children in the array
+    // ── Bottom row: Record Write Pipeline ────────────────────────────────────────
+    addSectionLabel('label-write', 'Record Write Pipeline',
+        'before → database operation → after  ·  async (fire & forget)', currentY)
+
+    const writeRowY = currentY + SECTION_LABEL_H + 44
+
+    addPhase(before, 'group-before', 'before', 'Before', COLUMN_X.before, writeRowY)
+    addPhase(after,  'group-after',  'after',  'After',  COLUMN_X.after,  writeRowY)
+    if (async_.length > 0) {
+        addPhase(async_, 'group-async', 'async', 'Async', COLUMN_X.async, writeRowY)
+    }
+
+    // DB node
     ruleNodes.push({
         id:       'db-node',
         type:     'databaseNode',
-        position: { x: COLUMN_X.db, y: dbY },
+        position: { x: COLUMN_X.db, y: writeRowY },
         style:    { width: DB_WIDTH, height: DB_HEIGHT },
         data:     { tableName } satisfies DatabaseNodeData,
         draggable: false,
     })
 
     // Inter-phase edges: Before → DB
-    // When the Before group is collapsed, route from the group handle directly.
     const isBeforeCollapsed = collapsedGroups.has('group-before')
     const lastBeforeId = (!isBeforeCollapsed && before.length > 0)
         ? `br-${before[before.length - 1].sys_id}`
@@ -239,7 +293,6 @@ function buildFlowElements(
     })
 
     // Inter-phase edges: DB → After
-    // When the After group is collapsed, route into the group handle directly.
     const isAfterCollapsed = collapsedGroups.has('group-after')
     const firstAfterId = (!isAfterCollapsed && after.length > 0)
         ? `br-${after[0].sys_id}`
@@ -255,14 +308,6 @@ function buildFlowElements(
         label:    (!firstAfterId && !isAfterCollapsed) ? 'No After rules' : undefined,
         style:    { stroke: '#22c55e', strokeWidth: 2 },
     })
-
-    // ── Bottom row: Form Load Pipeline (Display rules only) ───────────────────
-    if (display.length > 0) {
-        addSectionLabel('label-display', 'Form Load Pipeline',
-            'display rules run before a record is rendered in the form — no database write',
-            displaySectionY, GROUP_WIDTH)
-        addPhase(display, 'group-display', 'display', 'Display', COLUMN_X.before, displayRowY)
-    }
 
     // Group containers MUST appear before children in the array
     return { nodes: [...groupNodes, ...ruleNodes], edges }
