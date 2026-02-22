@@ -25,7 +25,7 @@ export default function DatabaseNode({ data }: NodeProps<DatabaseNodeData>) {
             </div>
 
             <div className="db-node__label">Database Operation</div>
-            <div className="db-node__table">{data.tableName}</div>
+            <div className="db-node__table"><span className="db-node__table-prefix">Table: </span>{data.tableName}</div>
 
             <Handle type="source" position={Position.Bottom} className="db-node__handle" />
         </div>

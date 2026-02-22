@@ -89,7 +89,7 @@ function buildFlowElements(
     const before  = rules.filter(r => r.when === 'before').sort((a, b) => a.order - b.order)
     const after   = rules.filter(r => r.when === 'after').sort((a, b) => a.order - b.order)
     const async_  = rules.filter(r => r.when === 'async').sort((a, b) => a.order - b.order)
-    const display = rules.filter(r => r.when === 'display').sort((a, b) => a.order - b.order)
+    const display = rules.filter(r => r.when === 'before_display').sort((a, b) => a.order - b.order)
 
     const groupHeight = (count: number) =>
         Math.max(140, GROUP_HEADER + count * (NODE_HEIGHT + NODE_GAP) + 20)
@@ -106,9 +106,13 @@ function buildFlowElements(
 
     // Y positions
     // DB node is always pinned to the top of the pipeline row — never moves.
-    const dbY              = TOP_ROW_Y
-    const displaySectionY  = TOP_ROW_Y + topGroupH + ROW_GAP
-    const displayRowY      = displaySectionY + SECTION_LABEL_H + 20
+    const dbY = TOP_ROW_Y
+    // The top-row effective height must be at least DB_HEIGHT so the Display
+    // section never overlaps the DB node (which stays fixed at DB_HEIGHT tall
+    // regardless of whether the phase groups are collapsed).
+    const topRowH         = Math.max(topGroupH, DB_HEIGHT)
+    const displaySectionY = TOP_ROW_Y + topRowH + ROW_GAP
+    const displayRowY     = displaySectionY + SECTION_LABEL_H + 20
 
     const groupNodes: Node[] = []
     const ruleNodes:  Node[] = []

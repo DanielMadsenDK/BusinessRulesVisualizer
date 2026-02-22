@@ -545,6 +545,11 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.db-node__table-prefix {
+    font-weight: 400;
+    color: #94a3b8;
+}
 /* ── Section label node ────────────────────────────────────────────────────────── */
 
 .section-label-node {
@@ -628,7 +633,7 @@ body {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 420px;
+    width: 550px;
     background: #ffffff;
     border-left: 1px solid #e2e8f0;
     box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
@@ -923,5 +928,15 @@ body {
     font-size: 10px;
     color: #94a3b8;
     word-break: break-all;
+}
+
+.detail-panel__sysid-link {
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.detail-panel__sysid-link:hover {
+    color: #3b82f6;
+    text-decoration: underline;
 }
 

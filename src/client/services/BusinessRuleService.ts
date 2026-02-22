@@ -2,8 +2,8 @@
 export interface BusinessRule {
     sys_id: string
     name: string
-    /** 'before' | 'after' | 'async' | 'display' */
-    when: 'before' | 'after' | 'async' | 'display'
+    /** 'before' | 'after' | 'async' | 'before_display' */
+    when: 'before' | 'after' | 'async' | 'before_display'
     order: number
     priority: number
     active: boolean

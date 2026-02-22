@@ -12,7 +12,8 @@ const PHASE_COLORS: Record<string, { bg: string; text: string }> = {
     before:  { bg: '#dbeafe', text: '#1d4ed8' },
     after:   { bg: '#dcfce7', text: '#15803d' },
     async:   { bg: '#fef3c7', text: '#b45309' },
-    display: { bg: '#f3e8ff', text: '#7e22ce' },
+    display:         { bg: '#f3e8ff', text: '#7e22ce' },
+    before_display:  { bg: '#f3e8ff', text: '#7e22ce' },
 }
 
 export default function DetailPanel({ rule, onClose }: DetailPanelProps) {
@@ -217,7 +218,15 @@ export default function DetailPanel({ rule, onClose }: DetailPanelProps) {
                     {/* sys_id */}
                     <div className="detail-panel__sysid-row">
                         <span className="detail-panel__meta-label">sys_id</span>
-                        <code className="detail-panel__sysid-value">{rule.sys_id}</code>
+                        <a
+                            className="detail-panel__sysid-value detail-panel__sysid-link"
+                            href={`${window.location.origin}/sys_script.do?sys_id=${rule.sys_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open record in ServiceNow"
+                        >
+                            {rule.sys_id}
+                        </a>
                     </div>
 
                 </div>
