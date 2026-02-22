@@ -8,6 +8,7 @@ declare global {
                     'app.css': {
                         table: 'sys_ux_theme_asset'
                         id: '442f52399a264f8fa2f94b588a27ed1b'
+                        deleted: true
                     }
                     'app.menu': {
                         table: 'sys_app_application'
@@ -24,6 +25,10 @@ declare global {
                     'module.visualizer': {
                         table: 'sys_app_module'
                         id: '74ff14390719416e8a3ef7b9bcc15442'
+                    }
+                    'node_modules/@mantine/core/styles.css': {
+                        table: 'sys_ux_theme_asset'
+                        id: 'e3b94dfdb0b242b58efb181d52532b59'
                     }
                     package_json: {
                         table: 'sys_module'

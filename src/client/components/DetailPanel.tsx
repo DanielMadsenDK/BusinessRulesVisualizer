@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
+import { Drawer, Badge, Group, Text, ActionIcon, Stack, ScrollArea, Code, Loader, Alert, Tooltip, Anchor } from '@mantine/core'
+import { IconCopy, IconCheck, IconAlertCircle, IconExternalLink } from '@tabler/icons-react'
 import type { BusinessRule } from '../services/BusinessRuleService.js'
 import { getScriptForRule } from '../services/BusinessRuleService.js'
 
@@ -38,14 +40,6 @@ export default function DetailPanel({ rule, onClose }: DetailPanelProps) {
             .finally(() => setScriptLoading(false))
     }, [rule?.sys_id])   // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Close on Escape
-    useEffect(() => {
-        if (!rule) return
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-        window.addEventListener('keydown', handler)
-        return () => window.removeEventListener('keydown', handler)
-    }, [rule, onClose])
-
     // Clean up copy timer on unmount
     useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current) }, [])
 
@@ -70,167 +64,158 @@ export default function DetailPanel({ rule, onClose }: DetailPanelProps) {
         { label: 'Query',  active: rule.action_query  },
     ] : []
 
-
-
     return (
-        <div
-            className={`detail-panel${isOpen ? ' detail-panel--open' : ''}`}
-            role="complementary"
-            aria-label="Business Rule Details"
-        >
-            {/* ── Header ─────────────────────────────────────────── */}
-            <div className="detail-panel__header">
-                <div className="detail-panel__header-left">
+        <Drawer
+            opened={isOpen}
+            onClose={onClose}
+            position="right"
+            size="lg"
+            padding="md"
+            title={
+                <Group gap="sm">
                     {rule && phaseStyle && (
-                        <span
-                            className="detail-panel__phase-badge"
-                            style={{ background: phaseStyle.bg, color: phaseStyle.text }}
+                        <Badge 
+                            variant="filled" 
+                            style={{ backgroundColor: phaseStyle.bg, color: phaseStyle.text }}
                         >
                             {rule.when}
-                        </span>
+                        </Badge>
                     )}
-                    <span className="detail-panel__title" title={rule?.name ?? ''}>
+                    <Text fw={600} size="lg" truncate style={{ maxWidth: 300 }}>
                         {rule?.name ?? ''}
-                    </span>
-                </div>
-                <button className="detail-panel__close" onClick={onClose} aria-label="Close panel">
-                    ✕
-                </button>
-            </div>
-
-            {/* ── Body (only rendered when a rule is selected) ──── */}
+                    </Text>
+                </Group>
+            }
+            styles={{
+                header: { borderBottom: '1px solid var(--mantine-color-gray-3)', paddingBottom: 'var(--mantine-spacing-sm)' },
+                body: { padding: 0, height: 'calc(100vh - 60px)' }
+            }}
+        >
             {rule && (
-                <div className="detail-panel__body">
-
-                    {/* Metadata row */}
-                    <div className="detail-panel__meta-row">
-                        <span className="detail-panel__meta-pill">
-                            <span className="detail-panel__meta-label">Order</span>
-                            <span className="detail-panel__meta-value">#{rule.order}</span>
-                        </span>
-                        <span className="detail-panel__meta-pill">
-                            <span className="detail-panel__meta-label">Priority</span>
-                            <span className="detail-panel__meta-value">#{rule.priority}</span>
-                        </span>
-                        {rule.inherited_from && (
-                            <span className="detail-panel__meta-pill detail-panel__meta-pill--inherited">
-                                <span className="detail-panel__meta-label">Inherited from</span>
-                                <span className="detail-panel__meta-value">{rule.inherited_from}</span>
-                            </span>
-                        )}
-                        <span className={`detail-panel__status-badge${rule.active ? ' detail-panel__status-badge--active' : ' detail-panel__status-badge--inactive'}`}>
-                            {rule.active ? 'Active' : 'Inactive'}
-                        </span>
-                        {rule.abort_action && (
-                            <span className="detail-panel__abort-badge">⚠ Aborts transaction</span>
-                        )}
-                    </div>
-
-                    {/* Triggers on */}
-                    <div className="detail-panel__section">
-                        <div className="detail-panel__section-label">Triggers on</div>
-                        <div className="detail-panel__ops-row">
-                            {ops.map(op => (
-                                <span
-                                    key={op.label}
-                                    className={`detail-panel__op-chip${op.active ? ' detail-panel__op-chip--active' : ''}`}
-                                >
-                                    {op.label}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Description */}
-                    {rule.description && (
-                        <div className="detail-panel__section">
-                            <div className="detail-panel__section-label">Description</div>
-                            <div className="detail-panel__prose">{rule.description}</div>
-                        </div>
-                    )}
-
-                    {/* Condition (simple) */}
-                    {rule.condition && (
-                        <div className="detail-panel__section">
-                            <div className="detail-panel__section-label">Condition</div>
-                            <div className="detail-panel__inline-code">{rule.condition}</div>
-                        </div>
-                    )}
-
-                    {/* Filter condition (raw encoded query string) */}
-                    {rule.filter_condition && (
-                        <div className="detail-panel__section">
-                            <div className="detail-panel__section-label">Filter condition</div>
-                            <div className="detail-panel__inline-code">{rule.filter_condition}</div>
-                        </div>
-                    )}
-
-                    {/* Script */}
-                    <div className="detail-panel__section detail-panel__section--script">
-                        <div className="detail-panel__section-header">
-                            <div className="detail-panel__section-label">Script</div>
-                            {script && !scriptLoading && (
-                                <button
-                                    className={`detail-panel__copy-btn${copied ? ' detail-panel__copy-btn--copied' : ''}`}
-                                    onClick={handleCopy}
-                                    title="Copy script to clipboard"
-                                >
-                                    {copied ? '✓ Copied' : 'Copy'}
-                                </button>
+                <ScrollArea h="100%" p="md">
+                    <Stack gap="xl">
+                        {/* Metadata row */}
+                        <Group gap="xs">
+                            <Badge variant="light" color="gray">Order: {rule.order}</Badge>
+                            <Badge variant="light" color="gray">Priority: {rule.priority}</Badge>
+                            {rule.inherited_from && (
+                                <Badge variant="light" color="blue">Inherited: {rule.inherited_from}</Badge>
                             )}
-                        </div>
+                            <Badge variant="light" color={rule.active ? 'green' : 'red'}>
+                                {rule.active ? 'Active' : 'Inactive'}
+                            </Badge>
+                            {rule.abort_action && (
+                                <Badge variant="filled" color="red">⚠ Aborts transaction</Badge>
+                            )}
+                        </Group>
 
-                        {scriptLoading && (
-                            <div className="detail-panel__script-status">
-                                {/* @ts-ignore — NDS web component */}
-                                <now-loader size="sm" />
-                                <span>Loading…</span>
-                            </div>
+                        {/* Triggers on */}
+                        <Stack gap="xs">
+                            <Text size="sm" fw={600} c="dimmed" tt="uppercase">Triggers on</Text>
+                            <Group gap="xs">
+                                {ops.map(op => (
+                                    <Badge 
+                                        key={op.label} 
+                                        variant={op.active ? 'filled' : 'outline'} 
+                                        color={op.active ? 'blue' : 'gray'}
+                                    >
+                                        {op.label}
+                                    </Badge>
+                                ))}
+                            </Group>
+                        </Stack>
+
+                        {/* Description */}
+                        {rule.description && (
+                            <Stack gap="xs">
+                                <Text size="sm" fw={600} c="dimmed" tt="uppercase">Description</Text>
+                                <Text size="sm">{rule.description}</Text>
+                            </Stack>
                         )}
 
-                        {scriptError && !scriptLoading && (
-                            <div className="detail-panel__script-status detail-panel__script-status--error">
-                                {scriptError}
-                            </div>
+                        {/* Condition (simple) */}
+                        {rule.condition && (
+                            <Stack gap="xs">
+                                <Text size="sm" fw={600} c="dimmed" tt="uppercase">Condition</Text>
+                                <Code block>{rule.condition}</Code>
+                            </Stack>
                         )}
 
-                        {script !== null && !scriptLoading && !scriptError && (
-                            script.trim() ? (
-                                <Highlight theme={themes.vsDark} code={script} language="javascript">
-                                    {({ style, tokens, getLineProps, getTokenProps }) => (
-                                        <pre className="detail-panel__script" style={style}>
-                                            {tokens.map((line, i) => (
-                                                <div key={i} {...getLineProps({ line })}>
-                                                    {line.map((token, key) => (
-                                                        <span key={key} {...getTokenProps({ token })} />
-                                                    ))}
-                                                </div>
-                                            ))}
-                                        </pre>
-                                    )}
-                                </Highlight>
-                            ) : (
-                                <div className="detail-panel__prose detail-panel__prose--muted">No script content.</div>
-                            )
+                        {/* Filter condition (raw encoded query string) */}
+                        {rule.filter_condition && (
+                            <Stack gap="xs">
+                                <Text size="sm" fw={600} c="dimmed" tt="uppercase">Filter condition</Text>
+                                <Code block>{rule.filter_condition}</Code>
+                            </Stack>
                         )}
-                    </div>
 
-                    {/* sys_id */}
-                    <div className="detail-panel__sysid-row">
-                        <span className="detail-panel__meta-label">sys_id</span>
-                        <a
-                            className="detail-panel__sysid-value detail-panel__sysid-link"
-                            href={`${window.location.origin}/sys_script.do?sys_id=${rule.sys_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Open record in ServiceNow"
-                        >
-                            {rule.sys_id}
-                        </a>
-                    </div>
+                        {/* Script */}
+                        <Stack gap="xs" style={{ flex: 1 }}>
+                            <Group justify="space-between">
+                                <Text size="sm" fw={600} c="dimmed" tt="uppercase">Script</Text>
+                                {script && !scriptLoading && (
+                                    <Tooltip label={copied ? 'Copied!' : 'Copy script'} withArrow position="left">
+                                        <ActionIcon 
+                                            variant="light" 
+                                            color={copied ? 'teal' : 'gray'} 
+                                            onClick={handleCopy}
+                                        >
+                                            {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                                        </ActionIcon>
+                                    </Tooltip>
+                                )}
+                            </Group>
 
-                </div>
+                            {scriptLoading && (
+                                <Group justify="center" p="xl">
+                                    <Loader size="sm" />
+                                    <Text size="sm" c="dimmed">Loading script...</Text>
+                                </Group>
+                            )}
+
+                            {scriptError && !scriptLoading && (
+                                <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" variant="light">
+                                    {scriptError}
+                                </Alert>
+                            )}
+
+                            {script !== null && !scriptLoading && !scriptError && (
+                                script.trim() ? (
+                                    <Highlight theme={themes.vsDark} code={script} language="javascript">
+                                        {({ style, tokens, getLineProps, getTokenProps }) => (
+                                            <pre style={{ ...style, padding: '1rem', borderRadius: '4px', overflowX: 'auto', fontSize: '13px', margin: 0 }}>
+                                                {tokens.map((line, i) => (
+                                                    <div key={i} {...getLineProps({ line })}>
+                                                        {line.map((token, key) => (
+                                                            <span key={key} {...getTokenProps({ token })} />
+                                                        ))}
+                                                    </div>
+                                                ))}
+                                            </pre>
+                                        )}
+                                    </Highlight>
+                                ) : (
+                                    <Text size="sm" c="dimmed" fs="italic">No script content.</Text>
+                                )
+                            )}
+                        </Stack>
+
+                        {/* sys_id */}
+                        <Group justify="space-between" pt="md" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
+                            <Text size="xs" c="dimmed">sys_id: {rule.sys_id}</Text>
+                            <Anchor 
+                                href={`${window.location.origin}/sys_script.do?sys_id=${rule.sys_id}`}
+                                target="_blank"
+                                size="xs"
+                            >
+                                <Group gap={4}>
+                                    Open in ServiceNow <IconExternalLink size={12} />
+                                </Group>
+                            </Anchor>
+                        </Group>
+                    </Stack>
+                </ScrollArea>
             )}
-        </div>
+        </Drawer>
     )
 }

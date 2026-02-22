@@ -13,6 +13,9 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import './app.css'
 
+import { AppShell, Center, Text, ThemeIcon, Stack } from '@mantine/core'
+import { IconSettings } from '@tabler/icons-react'
+
 import TableSelector from './components/TableSelector.js'
 import GroupNode, { type GroupNodeData } from './components/GroupNode.js'
 import BusinessRuleNode from './components/BusinessRuleNode.js'
@@ -388,71 +391,90 @@ export default function App() {
     const showEmpty = nodes.length === 0 && !loading && !error
 
     return (
-        <div className="brvApp">
-            <TableSelector
-                loading={loading}
-                error={error}
-                recentTables={recentTables}
-                onVisualize={handleVisualize}
-                onDismissError={() => setError(null)}
-                hideInherited={hideInherited}
-                onToggleHideInherited={handleToggleHideInherited}
-                hideActive={hideActive}
-                onToggleHideActive={handleToggleHideActive}
-                hideInactive={hideInactive}
-                onToggleHideInactive={handleToggleHideInactive}
-            />
+        <AppShell
+            header={{ height: 60 }}
+            padding="md"
+            styles={{
+                main: {
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: 'calc(100vh - 60px)',
+                    overflow: 'hidden'
+                }
+            }}
+        >
+            <AppShell.Header>
+                <TableSelector
+                    loading={loading}
+                    error={error}
+                    recentTables={recentTables}
+                    onVisualize={handleVisualize}
+                    onDismissError={() => setError(null)}
+                    hideInherited={hideInherited}
+                    onToggleHideInherited={handleToggleHideInherited}
+                    hideActive={hideActive}
+                    onToggleHideActive={handleToggleHideActive}
+                    hideInactive={hideInactive}
+                    onToggleHideInactive={handleToggleHideInactive}
+                />
+            </AppShell.Header>
 
-            <div className="brvApp__canvas">
-                {showEmpty && (
-                    <div className="brvApp__empty">
-                        <div className="brvApp__empty-icon" aria-hidden="true">⚙</div>
-                        <div className="brvApp__empty-title">Ready to visualize</div>
-                        <div className="brvApp__empty-hint">
-                            Enter a ServiceNow table name above and click{' '}
-                            <strong>Visualize</strong>
-                        </div>
-                    </div>
-                )}
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    nodeTypes={nodeTypes}
-                    onNodeClick={handleNodeClick}
-                    onPaneClick={handlePanelClose}
-                    fitView
-                    fitViewOptions={{ padding: 0.2 }}
-                    nodesDraggable={false}
-                    nodesConnectable={false}
-                    elementsSelectable={true}
-                    attributionPosition="bottom-left"
-                    minZoom={0.2}
-                    maxZoom={2}
-                >
-                    <Background color="#e2e8f0" gap={24} />
-                    <Controls />
-                    <MiniMap
-                        nodeColor={(node) => {
-                            if (node.type === 'groupNode') {
-                                const phase = (node.data as GroupNodeData).phase
-                                return phase === 'before'  ? '#3b82f6'
-                                    :  phase === 'after'   ? '#22c55e'
-                                    :  phase === 'async'   ? '#f59e0b'
-                                    :  phase === 'display' ? '#a855f7'
-                                    :  '#94a3b8'
-                            }
-                            if (node.type === 'databaseNode') return '#475569'
-                            if (node.type === 'sectionLabelNode') return 'transparent'
-                            return '#cbd5e1'
-                        }}
-                        maskColor="rgba(255,255,255,0.6)"
-                    />
-                </ReactFlow>
+            <AppShell.Main>
+                <div style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>
+                    {showEmpty && (
+                        <Center style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+                            <Stack align="center" gap="xs">
+                                <ThemeIcon size={64} radius="md" variant="light" color="gray">
+                                    <IconSettings size={40} />
+                                </ThemeIcon>
+                                <Text size="xl" fw={600} c="dimmed">Ready to visualize</Text>
+                                <Text c="dimmed">
+                                    Enter a ServiceNow table name above and click{' '}
+                                    <Text span fw={600}>Visualize</Text>
+                                </Text>
+                            </Stack>
+                        </Center>
+                    )}
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        nodeTypes={nodeTypes}
+                        onNodeClick={handleNodeClick}
+                        onPaneClick={handlePanelClose}
+                        fitView
+                        fitViewOptions={{ padding: 0.2 }}
+                        nodesDraggable={false}
+                        nodesConnectable={false}
+                        elementsSelectable={true}
+                        attributionPosition="bottom-left"
+                        minZoom={0.2}
+                        maxZoom={2}
+                    >
+                        <Background color="#e2e8f0" gap={24} />
+                        <Controls />
+                        <MiniMap
+                            nodeColor={(node) => {
+                                if (node.type === 'groupNode') {
+                                    const phase = (node.data as GroupNodeData).phase
+                                    return phase === 'before'  ? '#3b82f6'
+                                        :  phase === 'after'   ? '#22c55e'
+                                        :  phase === 'async'   ? '#f59e0b'
+                                        :  phase === 'display' ? '#a855f7'
+                                        :  '#94a3b8'
+                                }
+                                if (node.type === 'databaseNode') return '#475569'
+                                if (node.type === 'sectionLabelNode') return 'transparent'
+                                return '#cbd5e1'
+                            }}
+                            maskColor="rgba(255,255,255,0.6)"
+                        />
+                    </ReactFlow>
 
-                <DetailPanel rule={selectedRule} onClose={handlePanelClose} />
-            </div>
-        </div>
+                    <DetailPanel rule={selectedRule} onClose={handlePanelClose} />
+                </div>
+            </AppShell.Main>
+        </AppShell>
     )
 }

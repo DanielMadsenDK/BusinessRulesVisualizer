@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { Autocomplete, Button, Group, Alert, Title, ActionIcon, Container, Menu, Tooltip, Switch } from '@mantine/core'
+import { IconSettings, IconAlertCircle, IconSearch, IconHistory } from '@tabler/icons-react'
 
 interface TableSelectorProps {
     loading: boolean
@@ -16,11 +18,11 @@ interface TableSelectorProps {
 
 /**
  * Header bar containing:
- * - Text input for table name with autocomplete suggestions
- * - Recent-table chips
- * - "Visualize" button (NDS now-button)
- * - Loading overlay (NDS now-loader)
- * - Error alert (NDS now-alert)
+ * - Autocomplete input for table name (ready for SN table suggestions)
+ * - Recent tables history menu
+ * - "Visualize" button
+ * - Visibility filter chips
+ * - Error alert
  */
 export default function TableSelector({
     loading,
@@ -49,118 +51,112 @@ export default function TableSelector({
         if (table) onVisualize(table)
     }
 
-    function handleChipClick(table: string) {
-        setInputValue(table)
-        onVisualize(table)
-    }
-
-    function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-        if (e.key === 'Enter') {
-            const table = inputValue.trim()
-            if (table) onVisualize(table)
-        }
+    function handleOptionSubmit(val: string) {
+        setInputValue(val)
+        onVisualize(val)
     }
 
     return (
-        <div className="table-selector">
-            <div className="table-selector__top">
-                <div className="table-selector__brand">
-                    <span className="table-selector__logo" aria-hidden="true">⚙</span>
-                    <span className="table-selector__title">Business Rules Visualizer</span>
-                </div>
+        <Container fluid px="md" h="100%">
+            <Group wrap="nowrap" align="center" w="100%" h="100%">
+                {/* Left: Brand */}
+                <Group gap="sm" wrap="nowrap" style={{ flex: 1 }}>
+                    <ActionIcon variant="light" size="lg" radius="md" color="blue" aria-hidden="true">
+                        <IconSettings size={20} />
+                    </ActionIcon>
+                    <Title order={4} style={{ whiteSpace: 'nowrap' }}>Business Rules Visualizer</Title>
+                </Group>
 
-                <form className="table-selector__form" onSubmit={handleSubmit} role="search">
-                    <div className="table-selector__input-wrap">
-                        <input
+                {/* Center: Search Form & History */}
+                <form onSubmit={handleSubmit} role="search" style={{ flex: 2, maxWidth: 700, margin: 0 }}>
+                    <Group wrap="nowrap" gap="sm" align="center">
+                        <Menu shadow="md" width={200} position="bottom-start">
+                            <Menu.Target>
+                                <Tooltip label="Recent tables">
+                                    <ActionIcon variant="default" style={{ width: 36, height: 36 }} aria-label="Recent tables">
+                                        <IconHistory size={20} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                                <Menu.Label>Recent Tables</Menu.Label>
+                                {recentTables.length > 0 ? (
+                                    recentTables.map(t => (
+                                        <Menu.Item key={t} onClick={() => handleOptionSubmit(t)}>
+                                            {t}
+                                        </Menu.Item>
+                                    ))
+                                ) : (
+                                    <Menu.Item disabled>No recent tables</Menu.Item>
+                                )}
+                            </Menu.Dropdown>
+                        </Menu>
+
+                        <Autocomplete
                             ref={inputRef}
-                            className="table-selector__input"
-                            type="text"
                             placeholder="Enter table name (e.g. incident)"
+                            data={[]} // Ready for ServiceNow table suggestions
                             value={inputValue}
-                            onChange={e => setInputValue(e.target.value)}
-                            onKeyDown={handleKeyDown}
+                            onChange={setInputValue}
+                            onOptionSubmit={handleOptionSubmit}
                             disabled={loading}
                             aria-label="ServiceNow table name"
                             autoComplete="off"
                             spellCheck={false}
+                            style={{ flex: 1 }}
+                            leftSection={<IconSearch size={16} />}
+                            maxDropdownHeight={280}
                         />
-                    </div>
-                    {/* NDS now-button */}
-                    <now-button
-                        label={loading ? 'Loading…' : 'Visualize'}
-                        variant="primary"
-                        disabled={loading || !inputValue.trim() ? true : undefined}
-                        onClick={handleSubmit as unknown as React.MouseEventHandler}
-                    />
+                        <Button 
+                            type="submit" 
+                            loading={loading} 
+                            disabled={!inputValue.trim()}
+                            style={{ height: 36 }}
+                        >
+                            Visualize
+                        </Button>
+                    </Group>
                 </form>
 
-                {/* Filter checkboxes */}
-                <label className="table-selector__filter">
-                    <input
-                        type="checkbox"
-                        className="table-selector__filter-check"
+                {/* Right: Filters */}
+                <Group gap="md" wrap="nowrap" justify="flex-end" style={{ flex: 1 }}>
+                    <Switch
+                        label="Hide inherited"
                         checked={hideInherited}
-                        onChange={onToggleHideInherited}
+                        onChange={() => onToggleHideInherited()}
+                        size="sm"
+                        styles={{ label: { whiteSpace: 'nowrap' } }}
                     />
-                    <span className="table-selector__filter-label">Hide inherited</span>
-                </label>
-                <label className="table-selector__filter">
-                    <input
-                        type="checkbox"
-                        className="table-selector__filter-check"
+                    <Switch
+                        label="Hide active"
                         checked={hideActive}
-                        onChange={onToggleHideActive}
+                        onChange={() => onToggleHideActive()}
+                        size="sm"
+                        styles={{ label: { whiteSpace: 'nowrap' } }}
                     />
-                    <span className="table-selector__filter-label">Hide active</span>
-                </label>
-                <label className="table-selector__filter">
-                    <input
-                        type="checkbox"
-                        className="table-selector__filter-check"
+                    <Switch
+                        label="Hide inactive"
                         checked={hideInactive}
-                        onChange={onToggleHideInactive}
+                        onChange={() => onToggleHideInactive()}
+                        size="sm"
+                        styles={{ label: { whiteSpace: 'nowrap' } }}
                     />
-                    <span className="table-selector__filter-label">Hide inactive</span>
-                </label>
-            </div>
+                </Group>
+            </Group>
 
-            {/* Error alert */}
             {error && (
-                <div className="table-selector__alert">
-                    <now-alert
-                        status="critical"
-                        content={error}
-                        closeable={true}
-                        onClick={onDismissError as unknown as React.MouseEventHandler}
-                    />
-                </div>
+                <Alert 
+                    icon={<IconAlertCircle size={16} />} 
+                    title="Error" 
+                    color="red" 
+                    withCloseButton 
+                    onClose={onDismissError}
+                    variant="light"
+                    style={{ position: 'absolute', top: 70, right: 20, zIndex: 1000, maxWidth: 400, boxShadow: 'var(--mantine-shadow-md)' }}
+                >
+                    {error}
+                </Alert>
             )}
-
-            {/* Recent table chips */}
-            {recentTables.length > 0 && (
-                <div className="table-selector__recents">
-                    <span className="table-selector__recents-label">Recent:</span>
-                    {recentTables.map(table => (
-                        <button
-                            key={table}
-                            className="table-selector__chip"
-                            onClick={() => handleChipClick(table)}
-                            disabled={loading}
-                            type="button"
-                        >
-                            {table}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* Loading overlay */}
-            {loading && (
-                <div className="table-selector__loading" aria-live="polite" aria-label="Loading business rules">
-                    <now-loader flavor="primary" size="md" />
-                    <span className="table-selector__loading-text">Fetching business rules…</span>
-                </div>
-            )}
-        </div>
+        </Container>
     )
 }

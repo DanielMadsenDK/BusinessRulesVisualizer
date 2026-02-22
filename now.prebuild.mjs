@@ -31,6 +31,17 @@ export default async ({ rootDir, config, fs, path, logger, registerExplicitId })
         // Use the default set of ServiceNow plugins for Rollup
         // configured for the scope name and root directory
         plugins: servicenowFrontEndPlugins({ scope: config.scope, rootDir: clientDir, registerExplicitId }),
+        // Suppress "use client" warnings from third-party libraries like Mantine
+        // and circular dependency warnings from d3 (used by React Flow)
+        onwarn(warning, warn) {
+            if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && warning.message.includes('use client')) {
+                return
+            }
+            if (warning.code === 'CIRCULAR_DEPENDENCY' && warning.message.includes('node_modules/d3-')) {
+                return
+            }
+            warn(warning)
+        }
     })
     // Write the build output to the configured destination
     // including source maps for JavaScript files
