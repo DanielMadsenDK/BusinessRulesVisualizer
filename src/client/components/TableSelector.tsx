@@ -8,6 +8,10 @@ interface TableSelectorProps {
     onDismissError: () => void
     hideInherited: boolean
     onToggleHideInherited: () => void
+    hideActive: boolean
+    onToggleHideActive: () => void
+    hideInactive: boolean
+    onToggleHideInactive: () => void
 }
 
 /**
@@ -26,6 +30,10 @@ export default function TableSelector({
     onDismissError,
     hideInherited,
     onToggleHideInherited,
+    hideActive,
+    onToggleHideActive,
+    hideInactive,
+    onToggleHideInactive,
 }: TableSelectorProps) {
     const [inputValue, setInputValue] = useState('')
     const inputRef = useRef<HTMLInputElement>(null)
@@ -86,7 +94,7 @@ export default function TableSelector({
                     />
                 </form>
 
-                {/* Filter: hide inherited rules */}
+                {/* Filter checkboxes */}
                 <label className="table-selector__filter">
                     <input
                         type="checkbox"
@@ -95,6 +103,24 @@ export default function TableSelector({
                         onChange={onToggleHideInherited}
                     />
                     <span className="table-selector__filter-label">Hide inherited</span>
+                </label>
+                <label className="table-selector__filter">
+                    <input
+                        type="checkbox"
+                        className="table-selector__filter-check"
+                        checked={hideActive}
+                        onChange={onToggleHideActive}
+                    />
+                    <span className="table-selector__filter-label">Hide active</span>
+                </label>
+                <label className="table-selector__filter">
+                    <input
+                        type="checkbox"
+                        className="table-selector__filter-check"
+                        checked={hideInactive}
+                        onChange={onToggleHideInactive}
+                    />
+                    <span className="table-selector__filter-label">Hide inactive</span>
                 </label>
             </div>
 

@@ -274,6 +274,8 @@ export default function App() {
     const [recentTables, setRecentTables] = useState<string[]>([])
     const [selectedRule, setSelectedRule] = useState<BusinessRule | null>(null)
     const [hideInherited, setHideInherited] = useState(false)
+    const [hideActive, setHideActive]     = useState(false)
+    const [hideInactive, setHideInactive] = useState(false)
 
     // Tracks current table+rules without triggering re-renders on load
     const currentTableRef = useRef<{ name: string; rules: BusinessRule[] } | null>(null)
@@ -286,6 +288,26 @@ export default function App() {
             if (!prev) {
                 // Enabling filter: close detail panel if it's showing an inherited rule
                 setSelectedRule(r => (r?.inherited_from != null ? null : r))
+            }
+            return !prev
+        })
+    }, [])
+
+    const handleToggleHideActive = useCallback(() => {
+        setHideActive(prev => {
+            if (!prev) {
+                // Enabling filter: close detail panel if it's showing an active rule
+                setSelectedRule(r => (r?.active === true ? null : r))
+            }
+            return !prev
+        })
+    }, [])
+
+    const handleToggleHideInactive = useCallback(() => {
+        setHideInactive(prev => {
+            if (!prev) {
+                // Enabling filter: close detail panel if it's showing an inactive rule
+                setSelectedRule(r => (r?.active === false ? null : r))
             }
             return !prev
         })
@@ -309,17 +331,19 @@ export default function App() {
 
     const handlePanelClose = useCallback(() => setSelectedRule(null), [])
 
-    // Rebuild flow whenever collapsed state, selected rule, or inherited filter changes
+    // Rebuild flow whenever collapsed state, selected rule, or any filter changes
     useEffect(() => {
         if (!currentTableRef.current) return
         const { name, rules } = currentTableRef.current
-        const filteredRules = hideInherited ? rules.filter(r => r.inherited_from == null) : rules
+        let filteredRules = hideInherited ? rules.filter(r => r.inherited_from == null) : rules
+        if (hideActive)   filteredRules = filteredRules.filter(r => r.active !== true)
+        if (hideInactive) filteredRules = filteredRules.filter(r => r.active !== false)
         const { nodes: n, edges: e } = buildFlowElements(
             name, filteredRules, collapsedGroups, handleToggleGroup, selectedRuleId
         )
         setNodes(n)
         setEdges(e)
-    }, [collapsedGroups, handleToggleGroup, selectedRuleId, hideInherited, setNodes, setEdges])
+    }, [collapsedGroups, handleToggleGroup, selectedRuleId, hideInherited, hideActive, hideInactive, setNodes, setEdges])
 
     // Load recent tables on mount
     useEffect(() => {
@@ -373,6 +397,10 @@ export default function App() {
                 onDismissError={() => setError(null)}
                 hideInherited={hideInherited}
                 onToggleHideInherited={handleToggleHideInherited}
+                hideActive={hideActive}
+                onToggleHideActive={handleToggleHideActive}
+                hideInactive={hideInactive}
+                onToggleHideInactive={handleToggleHideInactive}
             />
 
             <div className="brvApp__canvas">
