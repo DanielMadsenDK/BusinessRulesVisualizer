@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Autocomplete, Button, Group, Alert, Title, ActionIcon, Container, Menu, Tooltip, Switch } from '@mantine/core'
+import { Autocomplete, Button, Group, Alert, Title, ActionIcon, Container, Menu, Tooltip, Switch, TextInput, SegmentedControl } from '@mantine/core'
 import { IconSettings, IconAlertCircle, IconSearch, IconHistory, IconTrash } from '@tabler/icons-react'
 import { searchTables, TableSuggestion } from '../services/BusinessRuleService'
 
@@ -16,6 +16,8 @@ interface TableSelectorProps {
     onToggleHideActive: () => void
     hideInactive: boolean
     onToggleHideInactive: () => void
+    scriptSearchQuery: string
+    onScriptSearchQueryChange: (query: string) => void
 }
 
 /**
@@ -39,7 +41,10 @@ export default function TableSelector({
     onToggleHideActive,
     hideInactive,
     onToggleHideInactive,
+    scriptSearchQuery,
+    onScriptSearchQueryChange,
 }: TableSelectorProps) {
+    const [searchMode, setSearchMode] = useState<'table' | 'code'>('table')
     const [inputValue, setInputValue] = useState('')
     const [suggestions, setSuggestions] = useState<TableSuggestion[]>([])
     const inputRef = useRef<HTMLInputElement>(null)
@@ -68,6 +73,7 @@ export default function TableSelector({
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+        if (searchMode === 'code') return
         const table = extractTableName(inputValue.trim())
         if (table) onVisualize(table)
     }
@@ -131,29 +137,52 @@ export default function TableSelector({
                             </Menu.Dropdown>
                         </Menu>
 
-                        <Autocomplete
-                            ref={inputRef}
-                            placeholder="Enter table name (e.g. incident)"
-                            data={suggestions.map(s => s.label)}
-                            value={inputValue}
-                            onChange={setInputValue}
-                            onOptionSubmit={handleOptionSubmit}
-                            disabled={loading}
-                            aria-label="ServiceNow table name"
-                            autoComplete="off"
-                            spellCheck={false}
-                            style={{ flex: 1 }}
-                            leftSection={<IconSearch size={16} />}
-                            maxDropdownHeight={280}
+                        <SegmentedControl
+                            value={searchMode}
+                            onChange={(val) => setSearchMode(val as 'table' | 'code')}
+                            data={[
+                                { label: 'Table', value: 'table' },
+                                { label: 'Code', value: 'code' }
+                            ]}
+                            size="sm"
                         />
-                        <Button 
-                            type="submit" 
-                            loading={loading} 
-                            disabled={!inputValue.trim()}
-                            style={{ height: 36 }}
-                        >
-                            Visualize
-                        </Button>
+
+                        {searchMode === 'table' ? (
+                            <>
+                                <Autocomplete
+                                    ref={inputRef}
+                                    placeholder="Enter table name (e.g. incident)"
+                                    data={suggestions.map(s => s.label)}
+                                    value={inputValue}
+                                    onChange={setInputValue}
+                                    onOptionSubmit={handleOptionSubmit}
+                                    disabled={loading}
+                                    aria-label="ServiceNow table name"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    style={{ flex: 1 }}
+                                    leftSection={<IconSearch size={16} />}
+                                    maxDropdownHeight={280}
+                                />
+                                <Button 
+                                    type="submit" 
+                                    loading={loading} 
+                                    disabled={!inputValue.trim()}
+                                    style={{ height: 36 }}
+                                >
+                                    Visualize
+                                </Button>
+                            </>
+                        ) : (
+                            <TextInput
+                                placeholder="Filter by script/name..."
+                                value={scriptSearchQuery}
+                                onChange={(e) => onScriptSearchQueryChange(e.currentTarget.value)}
+                                leftSection={<IconSearch size={16} />}
+                                style={{ flex: 1 }}
+                                autoFocus
+                            />
+                        )}
                     </Group>
                 </form>
 

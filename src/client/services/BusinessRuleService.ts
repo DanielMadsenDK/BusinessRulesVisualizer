@@ -15,6 +15,7 @@ export interface BusinessRule {
     filter_condition: string
     condition: string
     description: string
+    script: string
     /**
      * Name of the ancestor table this rule is defined on, or null if the rule
      * belongs directly to the queried table.

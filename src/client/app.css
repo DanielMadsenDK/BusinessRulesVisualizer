@@ -295,6 +295,12 @@ body {
     text-overflow: ellipsis;
 }
 
+.br-node__badge--search-match {
+    background: #e0e7ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+
 .br-node__inherited-tag {
     display: none;
 }

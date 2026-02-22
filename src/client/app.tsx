@@ -166,7 +166,7 @@ function buildFlowElements(
                     y: GROUP_HEADER + idx * (NODE_HEIGHT + NODE_GAP),
                 },
                 style:    { width: NODE_WIDTH, height: NODE_HEIGHT },
-                data:     { ...rule, isDetailOpen: rule.sys_id === selectedRuleId },
+                data:     { ...rule, isDetailOpen: rule.sys_id === selectedRuleId, isSearchMatch: (rule as any).isSearchMatch },
                 draggable: false,
             })
 
@@ -325,6 +325,7 @@ export default function App() {
     const [hideInherited, setHideInherited] = useState(false)
     const [hideActive, setHideActive]     = useState(false)
     const [hideInactive, setHideInactive] = useState(false)
+    const [scriptSearchQuery, setScriptSearchQuery] = useState('')
 
     // Tracks current table+rules without triggering re-renders on load
     const currentTableRef = useRef<{ name: string; rules: BusinessRule[] } | null>(null)
@@ -387,12 +388,32 @@ export default function App() {
         let filteredRules = hideInherited ? rules.filter(r => r.inherited_from == null) : rules
         if (hideActive)   filteredRules = filteredRules.filter(r => r.active !== true)
         if (hideInactive) filteredRules = filteredRules.filter(r => r.active !== false)
+        
+        if (scriptSearchQuery.trim()) {
+            const query = scriptSearchQuery.toLowerCase()
+            filteredRules = filteredRules.filter(r => {
+                const matches = (r.script && r.script.toLowerCase().includes(query)) ||
+                                (r.name && r.name.toLowerCase().includes(query))
+                if (matches) {
+                    // We mutate the object here to pass the flag down to the node.
+                    // Since we are creating a new array of filtered rules, this is safe enough for React Flow.
+                    (r as any).isSearchMatch = true
+                } else {
+                    (r as any).isSearchMatch = false
+                }
+                return matches
+            })
+        } else {
+            // Clear the flag if search is empty
+            filteredRules.forEach(r => (r as any).isSearchMatch = false)
+        }
+
         const { nodes: n, edges: e } = buildFlowElements(
             name, filteredRules, collapsedGroups, handleToggleGroup, selectedRuleId
         )
         setNodes(n)
         setEdges(e)
-    }, [collapsedGroups, handleToggleGroup, selectedRuleId, hideInherited, hideActive, hideInactive, setNodes, setEdges])
+    }, [collapsedGroups, handleToggleGroup, selectedRuleId, hideInherited, hideActive, hideInactive, scriptSearchQuery, setNodes, setEdges])
 
     // Load recent tables on mount
     useEffect(() => {
@@ -469,6 +490,8 @@ export default function App() {
                     onToggleHideActive={handleToggleHideActive}
                     hideInactive={hideInactive}
                     onToggleHideInactive={handleToggleHideInactive}
+                    scriptSearchQuery={scriptSearchQuery}
+                    onScriptSearchQueryChange={setScriptSearchQuery}
                 />
             </AppShell.Header>
 

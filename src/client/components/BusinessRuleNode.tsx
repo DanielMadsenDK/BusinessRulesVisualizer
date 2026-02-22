@@ -5,6 +5,8 @@ import type { BusinessRule } from '../services/BusinessRuleService.js'
 export type BusinessRuleNodeData = BusinessRule & {
     /** True when this rule's detail panel is currently open */
     isDetailOpen?: boolean
+    /** True when this rule matches the current script search query */
+    isSearchMatch?: boolean
 }
 
 /** Builds a compact comma-separated list of triggered operations */
@@ -40,6 +42,11 @@ export default function BusinessRuleNode({ data }: NodeProps<BusinessRuleNodeDat
                 {data.inherited_from && (
                     <span className="br-node__badge br-node__badge--inherited" title={`Inherited from ${data.inherited_from}`}>
                         Inherited: {data.inherited_from}
+                    </span>
+                )}
+                {data.isSearchMatch && (
+                    <span className="br-node__badge br-node__badge--search-match" title="Matches search query">
+                        Matches search
                     </span>
                 )}
             </div>

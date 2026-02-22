@@ -58,6 +58,7 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
                     filter_condition: gr.getValue('filter_condition') || '',
                     condition:        gr.getValue('condition') || '',
                     description:      gr.getValue('description') || '',
+                    script:           gr.getValue('script') || '',
                     inherited_from:   inheritedFrom
                 });
             }
