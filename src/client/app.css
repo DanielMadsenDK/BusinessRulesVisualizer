@@ -421,22 +421,6 @@ body {
     text-align: center;
 }
 
-.form-node__table {
-    font-size: 13px;
-    font-weight: 600;
-    color: #f1f5f9;
-    text-align: center;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.form-node__table-prefix {
-    font-weight: 400;
-    color: #94a3b8;
-}
-
 /* ── Section label node ────────────────────────────────────────────────────────── */
 
 .section-label-node {

@@ -2,7 +2,7 @@ import React from 'react'
 import { Handle, Position, NodeProps } from 'reactflow'
 
 export interface FormNodeData {
-    tableName: string
+    // No data needed for now
 }
 
 /**
@@ -26,7 +26,6 @@ export default function FormNode({ data }: NodeProps<FormNodeData>) {
             </div>
 
             <div className="form-node__label">Form Render</div>
-            <div className="form-node__table"><span className="form-node__table-prefix">Table: </span>{data.tableName}</div>
 
             <Handle type="source" position={Position.Bottom} className="form-node__handle" />
         </div>

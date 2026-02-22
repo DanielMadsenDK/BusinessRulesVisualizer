@@ -201,7 +201,7 @@ function buildFlowElements(
             type:     'databaseNode',
             position: { x: COLUMN_X.before, y: displayRowY },
             style:    { width: DB_WIDTH, height: DB_HEIGHT },
-            data:     { tableName } satisfies DatabaseNodeData,
+            data:     { tableName, label: 'Database Read' } satisfies DatabaseNodeData,
             draggable: false,
         })
         
@@ -214,7 +214,7 @@ function buildFlowElements(
             type:     'formNode',
             position: { x: COLUMN_X.after + 150, y: displayRowY },
             style:    { width: DB_WIDTH, height: DB_HEIGHT },
-            data:     { tableName } satisfies FormNodeData,
+            data:     {} satisfies FormNodeData,
             draggable: false,
         })
         
