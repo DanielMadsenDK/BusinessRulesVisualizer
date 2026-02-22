@@ -28,6 +28,7 @@ import {
     getBusinessRulesForTable,
     getRecentTables,
     saveTablePreference,
+    deleteTablePreference,
 } from './services/BusinessRuleService.js'
 
 // ── Layout constants ───────────────────────────────────────────────────────────
@@ -355,6 +356,12 @@ export default function App() {
             .catch(() => { /* silent — preferences are non-critical */ })
     }, [])
 
+    const handleDeleteRecentTable = useCallback((tableName: string) => {
+        // Optimistic update
+        setRecentTables(prev => prev.filter(t => t !== tableName))
+        deleteTablePreference(tableName).catch(() => { /* silent */ })
+    }, [])
+
     const handleVisualize = useCallback(async (tableName: string) => {
         setLoading(true)
         setError(null)
@@ -373,12 +380,12 @@ export default function App() {
                 // Start with all groups collapsed — the group IDs are deterministic.
                 // Any ID that has no matching group node is simply ignored.
                 setCollapsedGroups(new Set(['group-before', 'group-after', 'group-async', 'group-display']))
-            }
 
-            // Persist preference fire-and-forget
-            saveTablePreference(tableName)
-                .then(() => getRecentTables().then(setRecentTables))
-                .catch(() => { /* silent */ })
+                // Only persist to history when rules were actually found
+                saveTablePreference(tableName)
+                    .then(() => getRecentTables().then(setRecentTables))
+                    .catch(() => { /* silent */ })
+            }
 
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err)
@@ -409,6 +416,7 @@ export default function App() {
                     error={error}
                     recentTables={recentTables}
                     onVisualize={handleVisualize}
+                    onDeleteRecentTable={handleDeleteRecentTable}
                     onDismissError={() => setError(null)}
                     hideInherited={hideInherited}
                     onToggleHideInherited={handleToggleHideInherited}

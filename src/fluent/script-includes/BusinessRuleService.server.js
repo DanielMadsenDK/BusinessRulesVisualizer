@@ -186,5 +186,26 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
         return JSON.stringify({ success: true });
     },
 
+    /**
+     * Removes a single table from the user's recent-tables preference.
+     * Param: sysparm_table — the table name to remove.
+     */
+    deleteTablePreference: function () {
+        var tableName = this.getParameter('sysparm_table');
+        if (!tableName) {
+            return JSON.stringify({ success: false, error: 'Missing sysparm_table' });
+        }
+
+        var existing = [];
+        var pref = gs.getUser().getPreference('x_1118332_brv.recent_tables');
+        if (pref) {
+            try { existing = JSON.parse(pref); } catch (e) { existing = []; }
+        }
+
+        existing = existing.filter(function (t) { return t !== tableName; });
+        gs.getUser().savePreference('x_1118332_brv.recent_tables', JSON.stringify(existing));
+        return JSON.stringify({ success: true });
+    },
+
     type: 'BusinessRuleService'
 });

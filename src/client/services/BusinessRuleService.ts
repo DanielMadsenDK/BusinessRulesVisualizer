@@ -78,6 +78,11 @@ export async function saveTablePreference(tableName: string): Promise<void> {
     await callGlideAjax('saveTablePreference', { sysparm_table: tableName })
 }
 
+/** Remove a table name from the current user's recent-tables preference */
+export async function deleteTablePreference(tableName: string): Promise<void> {
+    await callGlideAjax('deleteTablePreference', { sysparm_table: tableName })
+}
+
 export interface BusinessRuleScript {
     /** Full script body (ServiceNow JavaScript) */
     script: string

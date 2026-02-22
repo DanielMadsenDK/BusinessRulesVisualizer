@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Autocomplete, Button, Group, Alert, Title, ActionIcon, Container, Menu, Tooltip, Switch } from '@mantine/core'
-import { IconSettings, IconAlertCircle, IconSearch, IconHistory } from '@tabler/icons-react'
+import { IconSettings, IconAlertCircle, IconSearch, IconHistory, IconTrash } from '@tabler/icons-react'
 import { searchTables, TableSuggestion } from '../services/BusinessRuleService'
 
 interface TableSelectorProps {
@@ -8,6 +8,7 @@ interface TableSelectorProps {
     error: string | null
     recentTables: string[]
     onVisualize: (tableName: string) => void
+    onDeleteRecentTable: (tableName: string) => void
     onDismissError: () => void
     hideInherited: boolean
     onToggleHideInherited: () => void
@@ -30,6 +31,7 @@ export default function TableSelector({
     error,
     recentTables,
     onVisualize,
+    onDeleteRecentTable,
     onDismissError,
     hideInherited,
     onToggleHideInherited,
@@ -102,7 +104,24 @@ export default function TableSelector({
                                 <Menu.Label>Recent Tables</Menu.Label>
                                 {recentTables.length > 0 ? (
                                     recentTables.map(t => (
-                                        <Menu.Item key={t} onClick={() => handleOptionSubmit(t)}>
+                                        <Menu.Item
+                                            key={t}
+                                            onClick={() => handleOptionSubmit(t)}
+                                            rightSection={
+                                                <ActionIcon
+                                                    size="xs"
+                                                    variant="subtle"
+                                                    color="gray"
+                                                    aria-label={`Remove ${t} from history`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        onDeleteRecentTable(t)
+                                                    }}
+                                                >
+                                                    <IconTrash size={12} />
+                                                </ActionIcon>
+                                            }
+                                        >
                                             {t}
                                         </Menu.Item>
                                     ))
