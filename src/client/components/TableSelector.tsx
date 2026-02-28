@@ -60,10 +60,18 @@ export default function TableSelector({
             setSuggestions([])
             return
         }
+        let active = true
         const timer = setTimeout(() => {
-            searchTables(inputValue.trim()).then(setSuggestions).catch(console.error)
+            searchTables(inputValue.trim())
+                .then((res) => {
+                    if (active) setSuggestions(res)
+                })
+                .catch(console.error)
         }, 300)
-        return () => clearTimeout(timer)
+        return () => {
+            active = false
+            clearTimeout(timer)
+        }
     }, [inputValue])
 
     function extractTableName(val: string): string {

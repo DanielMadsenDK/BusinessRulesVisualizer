@@ -22,49 +22,54 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
             return JSON.stringify({ error: 'Missing sysparm_table parameter' });
         }
 
-        // GlideTableHierarchy returns the full ancestor chain as a Java ArrayList.
-        // Casting to string yields a comma-separated list e.g. "incident,task".
-        // Index 0 is the queried table itself; subsequent entries are ancestors.
-        var hierStr = '' + new GlideTableHierarchy(tableName).getHierarchy();
-        var tablesToQuery = hierStr.split(',');
+        try {
+            // GlideTableHierarchy returns the full ancestor chain as a Java ArrayList.
+            // Casting to string yields a comma-separated list e.g. "incident,task".
+            // Index 0 is the queried table itself; subsequent entries are ancestors.
+            var hierStr = '' + new GlideTableHierarchy(tableName).getHierarchy();
+            var tablesToQuery = hierStr.split(',');
 
-        var rules = [];
+            var rules = [];
 
-        for (var i = 0; i < tablesToQuery.length; i++) {
-            var queryTable = tablesToQuery[i].trim();
-            if (!queryTable) continue;
+            for (var i = 0; i < tablesToQuery.length; i++) {
+                var queryTable = tablesToQuery[i].trim();
+                if (!queryTable) continue;
 
-            var inheritedFrom = (i === 0) ? null : queryTable;
+                var inheritedFrom = (i === 0) ? null : queryTable;
 
-            var gr = new GlideRecord('sys_script');
-            gr.addQuery('collection', queryTable);
-            gr.orderBy('when');
-            gr.orderBy('order');
-            gr.query();
+                var gr = new GlideRecord('sys_script');
+                gr.addQuery('collection', queryTable);
+                gr.orderBy('when');
+                gr.orderBy('order');
+                gr.query();
 
-            while (gr.next()) {
-                rules.push({
-                    sys_id:           gr.getValue('sys_id'),
-                    name:             gr.getValue('name'),
-                    when:             gr.getValue('when'),
-                    order:            parseInt(gr.getValue('order'), 10) || 100,
-                    priority:         parseInt(gr.getValue('priority'), 10) || 100,
-                    active:           gr.getValue('active') === '1' || gr.getValue('active') === 'true',
-                    action_insert:    gr.getValue('action_insert') === '1' || gr.getValue('action_insert') === 'true',
-                    action_update:    gr.getValue('action_update') === '1' || gr.getValue('action_update') === 'true',
-                    action_delete:    gr.getValue('action_delete') === '1' || gr.getValue('action_delete') === 'true',
-                    action_query:     gr.getValue('action_query') === '1' || gr.getValue('action_query') === 'true',
-                    abort_action:     gr.getValue('abort_action') === '1' || gr.getValue('abort_action') === 'true',
-                    filter_condition: gr.getValue('filter_condition') || '',
-                    condition:        gr.getValue('condition') || '',
-                    description:      gr.getValue('description') || '',
-                    script:           gr.getValue('script') || '',
-                    inherited_from:   inheritedFrom
-                });
+                while (gr.next()) {
+                    if (!gr.canRead()) continue;
+                    rules.push({
+                        sys_id:           gr.getValue('sys_id'),
+                        name:             gr.getValue('name'),
+                        when:             gr.getValue('when'),
+                        order:            parseInt(gr.getValue('order'), 10) || 100,
+                        priority:         parseInt(gr.getValue('priority'), 10) || 100,
+                        active:           gr.getValue('active') === '1' || gr.getValue('active') === 'true',
+                        action_insert:    gr.getValue('action_insert') === '1' || gr.getValue('action_insert') === 'true',
+                        action_update:    gr.getValue('action_update') === '1' || gr.getValue('action_update') === 'true',
+                        action_delete:    gr.getValue('action_delete') === '1' || gr.getValue('action_delete') === 'true',
+                        action_query:     gr.getValue('action_query') === '1' || gr.getValue('action_query') === 'true',
+                        abort_action:     gr.getValue('abort_action') === '1' || gr.getValue('abort_action') === 'true',
+                        filter_condition: gr.getValue('filter_condition') || '',
+                        condition:        gr.getValue('condition') || '',
+                        description:      gr.getValue('description') || '',
+                        script:           gr.getValue('script') || '',
+                        inherited_from:   inheritedFrom
+                    });
+                }
             }
-        }
 
-        return JSON.stringify(rules);
+            return JSON.stringify(rules);
+        } catch (e) {
+            return JSON.stringify({ error: e.message });
+        }
     },
 
     /**
@@ -72,22 +77,24 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
      * one business rule — used to power the autocomplete/suggestions in the UI.
      */
     getAvailableTables: function () {
-        var tables = [];
-        var seen = {};
-        var gr = new GlideRecord('sys_script');
-        gr.addActiveQuery();
-        gr.orderBy('collection');
-        gr.query();
+        try {
+            var tables = [];
+            var ga = new GlideAggregate('sys_script');
+            ga.addActiveQuery();
+            ga.groupBy('collection');
+            ga.query();
 
-        while (gr.next()) {
-            var col = gr.getValue('collection');
-            if (col && !seen[col]) {
-                seen[col] = true;
-                tables.push(col);
+            while (ga.next()) {
+                var col = ga.getValue('collection');
+                if (col) {
+                    tables.push(col);
+                }
             }
-        }
 
-        return JSON.stringify(tables);
+            return JSON.stringify(tables);
+        } catch (e) {
+            return JSON.stringify({ error: e.message });
+        }
     },
 
     /**
@@ -114,22 +121,27 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
         var query = this.getParameter('sysparm_query');
         if (!query) return JSON.stringify([]);
 
-        var tables = [];
-        var gr = new GlideRecord('sys_db_object');
-        var qc = gr.addQuery('name', 'CONTAINS', query);
-        qc.addOrCondition('label', 'CONTAINS', query);
-        gr.orderBy('label');
-        gr.setLimit(20);
-        gr.query();
+        try {
+            var tables = [];
+            var gr = new GlideRecord('sys_db_object');
+            var qc = gr.addQuery('name', 'CONTAINS', query);
+            qc.addOrCondition('label', 'CONTAINS', query);
+            gr.orderBy('label');
+            gr.setLimit(20);
+            gr.query();
 
-        while (gr.next()) {
-            tables.push({
-                value: gr.getValue('name'),
-                label: gr.getValue('label') + ' (' + gr.getValue('name') + ')'
-            });
+            while (gr.next()) {
+                if (!gr.canRead()) continue;
+                tables.push({
+                    value: gr.getValue('name'),
+                    label: gr.getValue('label') + ' (' + gr.getValue('name') + ')'
+                });
+            }
+
+            return JSON.stringify(tables);
+        } catch (e) {
+            return JSON.stringify({ error: e.message });
         }
-
-        return JSON.stringify(tables);
     },
 
     /**
@@ -148,14 +160,22 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
             return JSON.stringify({ error: 'Missing sysparm_sys_id parameter' });
         }
 
-        var gr = new GlideRecord('sys_script');
-        if (!gr.get(sysId)) {
-            return JSON.stringify({ error: 'Record not found: ' + sysId });
-        }
+        try {
+            var gr = new GlideRecord('sys_script');
+            if (!gr.get(sysId)) {
+                return JSON.stringify({ error: 'Record not found: ' + sysId });
+            }
 
-        return JSON.stringify({
-            script: gr.getValue('script') || ''
-        });
+            if (!gr.canRead()) {
+                return JSON.stringify({ error: 'Not authorized to read record: ' + sysId });
+            }
+
+            return JSON.stringify({
+                script: gr.getValue('script') || ''
+            });
+        } catch (e) {
+            return JSON.stringify({ error: e.message });
+        }
     },
 
     saveTablePreference: function () {
@@ -164,27 +184,23 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
             return JSON.stringify({ success: false, error: 'Missing sysparm_table' });
         }
 
-        var existing = [];
-        var pref = gs.getUser().getPreference('x_1118332_brv.recent_tables');
-        if (pref) {
-            try {
-                existing = JSON.parse(pref);
-            } catch (e) {
-                existing = [];
+        try {
+            var existing = this._getRecentTablesArray();
+
+            // Remove the table if already present, then prepend
+            existing = existing.filter(function (t) { return t !== tableName; });
+            existing.unshift(tableName);
+
+            // Keep max 10 entries
+            if (existing.length > 10) {
+                existing = existing.slice(0, 10);
             }
+
+            gs.getUser().savePreference('x_1118332_brv.recent_tables', JSON.stringify(existing));
+            return JSON.stringify({ success: true });
+        } catch (e) {
+            return JSON.stringify({ success: false, error: e.message });
         }
-
-        // Remove the table if already present, then prepend
-        existing = existing.filter(function (t) { return t !== tableName; });
-        existing.unshift(tableName);
-
-        // Keep max 10 entries
-        if (existing.length > 10) {
-            existing = existing.slice(0, 10);
-        }
-
-        gs.getUser().savePreference('x_1118332_brv.recent_tables', JSON.stringify(existing));
-        return JSON.stringify({ success: true });
     },
 
     /**
@@ -197,15 +213,32 @@ BusinessRuleService.prototype = Object.extendsObject(global.AbstractAjaxProcesso
             return JSON.stringify({ success: false, error: 'Missing sysparm_table' });
         }
 
+        try {
+            var existing = this._getRecentTablesArray();
+
+            existing = existing.filter(function (t) { return t !== tableName; });
+            gs.getUser().savePreference('x_1118332_brv.recent_tables', JSON.stringify(existing));
+            return JSON.stringify({ success: true });
+        } catch (e) {
+            return JSON.stringify({ success: false, error: e.message });
+        }
+    },
+
+    /**
+     * Helper to parse the recent tables preference into an array.
+     * @private
+     */
+    _getRecentTablesArray: function () {
         var existing = [];
         var pref = gs.getUser().getPreference('x_1118332_brv.recent_tables');
         if (pref) {
-            try { existing = JSON.parse(pref); } catch (e) { existing = []; }
+            try {
+                existing = JSON.parse(pref);
+            } catch (e) {
+                existing = [];
+            }
         }
-
-        existing = existing.filter(function (t) { return t !== tableName; });
-        gs.getUser().savePreference('x_1118332_brv.recent_tables', JSON.stringify(existing));
-        return JSON.stringify({ success: true });
+        return existing;
     },
 
     type: 'BusinessRuleService'
